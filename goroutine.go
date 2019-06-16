@@ -1,0 +1,46 @@
+package scheduler
+
+import "sync"
+
+// Goroutine is a scheduler that dispatches tasks asynchronously and runs them
+// concurrently. It is safe to use the Goroutine scheduler from concurrently
+// running tasks.
+type Goroutine struct{}
+
+// Schedule a task; dispatch it asynchronously to run concurrently as a
+// new goroutine.
+func (s Goroutine) Schedule(task func()) {
+	go task()
+}
+
+// Schedule a task; dispatch it asynchronously to run concurrently as a
+// new goroutine. Inside a task scheduled with ScheduleRecursive, using the
+// self() function will asynchronously reschedule the task to run concurrently
+// with itself.
+func (s Goroutine) ScheduleRecursive(task func(self func())) {
+	go task(func() { s.ScheduleRecursive(task) })
+}
+
+// IsAsynchronous returns true.
+func (s Goroutine) IsAsynchronous() bool {
+	return true
+}
+
+// IsSerial returns false.
+func (s Goroutine) IsSerial() bool {
+	return false
+}
+
+// IsConcurrent returns true.
+func (s Goroutine) IsConcurrent() bool {
+	return true
+}
+
+// Wait will block until the function registered via onCancel() is called.
+// Goroutines will run by themselves and so there is nothing to do but wait.
+func (s Goroutine) Wait(onCancel func(func())) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	onCancel(wg.Done)
+	wg.Wait()
+}
