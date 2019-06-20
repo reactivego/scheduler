@@ -1,8 +1,10 @@
-// Package scheduler contains different implementations of the Scheduler
-// interface.
+// Package scheduler implements task schedulers.
 //
-// Scheduling can be characterized in two ways. First, in the way tasks are
-// dispatched to the scheduler, which can be either asynchronous or
-// synchronous. Second, in the way tasks are actually executed by the
-// scheduler, which can be immediate, serial or concurrent.
+// Tasks can be dispatched asynchronously or synchronously to a scheduler.
+// Asynchronous means the dispatch function returns before the task starts,
+// whereas synchronous means the dispatch function returns only afer the
+// dispatched task has completed.
+// 
+// A scheduler runs dispatched tasks concurrently, sequentially (serial)
+// or immediately.
 package scheduler
