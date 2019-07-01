@@ -1,5 +1,7 @@
 package scheduler
 
+import "time"
+
 // ScheduleFunc is a function that can schedule tasks.
 // The root scheduler as well as recursive scheduling is synchronous and immediate.
 type ScheduleFunc func(task func())
@@ -11,8 +13,22 @@ func (s ScheduleFunc) Schedule(task func()) {
 
 // Schedule the task and recursive tasks to run synchronously and immediate.
 func (s ScheduleFunc) ScheduleRecursive(task func(self func())) {
-	self := func() { s.ScheduleRecursive(task) }
-	s(func() { task(self) })
+	self := func() {
+		s.ScheduleRecursive(task)
+	}
+	s(func() {
+		task(self)
+	})
+}
+
+func (s ScheduleFunc) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+	self := func(timeout time.Duration) {
+		s.ScheduleFutureRecursive(timeout, task)
+	}
+	s(func() {
+		time.Sleep(timeout)
+		task(self)
+	})
 }
 
 // IsAsynchronous returns false.

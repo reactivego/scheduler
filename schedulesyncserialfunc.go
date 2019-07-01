@@ -1,5 +1,7 @@
 package scheduler
 
+import "time"
+
 // ScheduleSyncSerialFunc is a function that can dispatch tasks synchronously
 // and run them in sequence. The root scheduler as well as recursive scheduling
 // is synchronous and serial.
@@ -20,8 +22,22 @@ func (s ScheduleSyncSerialFunc) Schedule(task func()) {
 // Schedule the task and recursive tasks, dispatching it synchronously on
 // a serial queue.
 func (s ScheduleSyncSerialFunc) ScheduleRecursive(task func(self func())) {
-	self := func() { s.ScheduleRecursive(task) }
-	s(func() { task(self) })
+	self := func() {
+		s.ScheduleRecursive(task)
+	}
+	s(func() {
+		task(self)
+	})
+}
+
+func (s ScheduleSyncSerialFunc) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+	self := func(timeout time.Duration) {
+		s.ScheduleFutureRecursive(timeout, task)
+	}
+	s(func() {
+		time.Sleep(timeout)
+		task(self)
+	})
 }
 
 // IsAsynchronous returns false.

@@ -1,17 +1,22 @@
 package scheduler
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+	"time"
+)
 
 // Trampoline scheduler schedules a task to occur after the currently
 // running task completes. A task scheduled on an empty trampoline
 // will be dispatched sychronously and run immediately, while tasks
-// scheduled by that task will be asynchronous and serial. Trampoline
-// scheduler is not safe to use from multiple goroutines at the same time.
-// It should be used purely for scheduling tasks from a single goroutine.
+// scheduled by that task will be dispatched asynchronously and serial.
+//
+// Trampoline scheduler is not safe to use from multiple goroutines at
+// the same time. It should be used purely for scheduling tasks from a
+// single goroutine.
 type Trampoline struct{ tasks []func() }
 
-// Schedule the first task to run synchronously and any subsequent tasks
-// asynchronously on a task queue. So when the first task eventually
+// Schedule will dispatch the first task synchronously and any subsequent
+// tasks asynchronously on a task queue. So when the first task eventually
 // returns the queue of tasks is empty again.
 func (s *Trampoline) Schedule(task func()) {
 	s.tasks = append(s.tasks, task)
@@ -23,12 +28,32 @@ func (s *Trampoline) Schedule(task func()) {
 	}
 }
 
-// Schedule the first task to run synchronously and any subsequent tasks
-// asynchronously on a task queue. So when the first task eventually
-// returns the queue of tasks is empty again.
+// ScheduleRecursive will dispatch the first task synchronously
+// and any subsequent tasks asynchronously on a task queue. So when
+// the first task eventually returns the queue of tasks is empty again.
 func (s *Trampoline) ScheduleRecursive(task func(self func())) {
-	self := func() { s.ScheduleRecursive(task) }
-	s.Schedule(func() { task(self) })
+	self := func() {
+		s.ScheduleRecursive(task)
+	}
+	s.Schedule(func() {
+		task(self)
+	})
+}
+
+// ScheduleFutureRecursive will dispatch the first task synchronously
+// and any subsequent tasks asynchronously on a task queue. When the first
+// task eventually returns the queue of tasks is empty again.
+// The task will be scheduled after the time period has passed.
+// To schedule for the next period, the code should call the self function.
+// Just returning from the task function will terminate a task.
+func (s *Trampoline) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+	self := func(timeout time.Duration) {
+		s.ScheduleFutureRecursive(timeout, task)
+	}
+	s.Schedule(func() {
+		time.Sleep(timeout)
+		task(self)
+	})
 }
 
 // IsAsynchronous returns false when no task is currently scheduled.

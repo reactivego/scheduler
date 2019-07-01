@@ -1,5 +1,7 @@
 package scheduler
 
+import "time"
+
 // ScheduleAsyncConcurrentFunc is a function that can dispatch tasks
 // asynchronously and then run them concurrently. The root scheduler
 // is asynchronous and concurrent, while the ScheduleRecursive method
@@ -20,6 +22,11 @@ func (s ScheduleAsyncConcurrentFunc) Schedule(task func()) {
 func (s ScheduleAsyncConcurrentFunc) ScheduleRecursive(task func(self func())) {
 	inner := &Trampoline{}
 	s(func() { inner.ScheduleRecursive(task) })
+}
+
+func (s ScheduleAsyncConcurrentFunc) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+	inner := &Trampoline{}
+	s(func() { inner.ScheduleFutureRecursive(timeout,task) })
 }
 
 // IsAsynchronous returns true.

@@ -1,6 +1,9 @@
 package scheduler
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 // Goroutine is a scheduler that dispatches tasks asynchronously and runs them
 // concurrently. It is safe to use the Goroutine scheduler from concurrently
@@ -19,6 +22,16 @@ func (s Goroutine) Schedule(task func()) {
 // with itself.
 func (s Goroutine) ScheduleRecursive(task func(self func())) {
 	go task(func() { s.ScheduleRecursive(task) })
+}
+
+func (s Goroutine) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+	self := func(timeout time.Duration) {
+		s.ScheduleFutureRecursive(timeout, task)
+	}
+	go func() {
+		time.Sleep(timeout)
+		task(self)
+	}()
 }
 
 // IsAsynchronous returns true.

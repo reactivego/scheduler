@@ -1,6 +1,9 @@
 package scheduler
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 // NewGoroutine scheduler will dispatch a task asynchronously and run it
 // concurrently with previously scheduled tasks. It is safe to call the
@@ -18,6 +21,11 @@ func (s newgoroutine) Schedule(task func()) {
 func (s newgoroutine) ScheduleRecursive(task func(self func())) {
 	inner := &Trampoline{}
 	go inner.ScheduleRecursive(task)
+}
+
+func (s newgoroutine) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+	inner := &Trampoline{}
+	go inner.ScheduleFutureRecursive(timeout,task)
 }
 
 func (s newgoroutine) IsAsynchronous() bool {
