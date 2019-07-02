@@ -15,6 +15,10 @@ import (
 // single goroutine.
 type Trampoline struct{ tasks []func() }
 
+func (s *Trampoline) Now() time.Time {
+	return time.Now()
+}
+
 // Schedule will dispatch the first task synchronously and any subsequent
 // tasks asynchronously on a task queue. So when the first task eventually
 // returns the queue of tasks is empty again.
