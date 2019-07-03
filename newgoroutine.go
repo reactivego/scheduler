@@ -40,9 +40,3 @@ func (s newgoroutine) IsConcurrent() bool {
 	return true
 }
 
-func (s newgoroutine) Wait(onCancel func(func())) {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	onCancel(wg.Done)
-	wg.Wait()
-}

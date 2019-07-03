@@ -40,5 +40,3 @@ func (s immediate) IsConcurrent() bool {
 	return false
 }
 
-func (s immediate) Wait(onCancel func(func())) {
-}

@@ -75,17 +75,3 @@ func (s Trampoline) IsConcurrent() bool {
 	return false
 }
 
-// Wait will run the tasks from the queue by executing every task one by one.
-// It will return when the function registered via onCancel() is called or
-// when there are no more tasks remaining. Note, the currently running task
-// may append additional tasks to the queue to run later.
-func (s *Trampoline) Wait(onCancel func(func())) {
-	active := int32(1)
-	onCancel(func() {
-		atomic.StoreInt32(&active, 0)
-	})
-	for atomic.LoadInt32(&active) != 0 && len(s.tasks) > 0 {
-		s.tasks[0]()
-		s.tasks = s.tasks[1:]
-	}
-}
