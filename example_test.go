@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 // Immediate scheduler will dispatch a task synchronously and run it
@@ -159,5 +160,75 @@ func ExampleTrampoline_ScheduleRecursive() {
 	// 0
 	// 1
 	// 2
+	// after
+}
+
+func ExampleTrampoline_ScheduleFuture() {
+	tramp := &Trampoline{}
+	fmt.Println("before")
+	// Synchronous & Immediate
+	tramp.ScheduleFuture(10*time.Millisecond, func() {
+		fmt.Println("> outer")
+
+		// Asynchronous & Serial
+		tramp.Schedule(func() {
+			fmt.Println("> inner")
+
+			// Asynchronous & Serial
+			tramp.Schedule(func() {
+				fmt.Println("leaf")
+			})
+
+			fmt.Println("< inner")
+		})
+
+		fmt.Println("< outer")
+	})
+	fmt.Println("after")
+
+	// Output:
+	// before
+	// > outer
+	// < outer
+	// > inner
+	// < inner
+	// leaf
+	// after
+}
+
+
+func ExampleTrampoline_ScheduleFutureRecursive() {
+	const asap = 0
+	const _5ms = 5 * time.Millisecond
+	const _10ms = 2 * _5ms
+	const _20ms = 2 * _10ms
+
+	tramp := &Trampoline{}
+	fmt.Println("before")
+
+	tramp.ScheduleFutureRecursive(asap, func(self func(time.Duration)) {
+		fmt.Println("> outer")
+
+		//fmt.Println(time.Now().Sub(start).Round(_10ms))
+
+		tramp.ScheduleFutureRecursive(_10ms, func(self func(time.Duration)) {
+			fmt.Println("leaf 10ms")
+		})
+
+		tramp.ScheduleFutureRecursive(_5ms, func(self func(time.Duration)) {
+			fmt.Println("leaf 5ms")
+		})
+
+		fmt.Println("< outer")
+	})
+
+	fmt.Println("after")
+
+	// Output:
+	// before
+	// > outer
+	// < outer
+	// leaf 5ms
+	// leaf 10ms
 	// after
 }

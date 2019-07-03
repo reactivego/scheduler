@@ -11,21 +11,26 @@ var Immediate = &immediate{}
 
 type immediate struct{}
 
+func (s immediate) Now() time.Time {
+	return time.Now()
+}
+
 func (s immediate) Schedule(task func()) {
 	task()
 }
 
 func (s immediate) ScheduleRecursive(task func(self func())) {
-	self := func() { s.ScheduleRecursive(task) }
-	task(self)
+	task(func() { s.ScheduleRecursive(task) })
 }
 
-func (s immediate) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
-	self := func(timeout time.Duration) {
-		s.ScheduleFutureRecursive(timeout, task)
-	}
-	time.Sleep(timeout)
-	task(self)
+func (s immediate) ScheduleFuture(due time.Duration, task func()) {
+	time.Sleep(due)
+	task()
+}
+
+func (s immediate) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
+	time.Sleep(due)
+	task(func(due time.Duration) { s.ScheduleFutureRecursive(due, task) })
 }
 
 func (s immediate) IsAsynchronous() bool {
@@ -39,4 +44,3 @@ func (s immediate) IsSerial() bool {
 func (s immediate) IsConcurrent() bool {
 	return false
 }
-

@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"sync"
 	"time"
 )
 
@@ -14,6 +13,10 @@ var NewGoroutine = &newgoroutine{}
 
 type newgoroutine struct{}
 
+func (s newgoroutine) Now() time.Time {
+	return time.Now()
+}
+
 func (s newgoroutine) Schedule(task func()) {
 	go task()
 }
@@ -23,9 +26,16 @@ func (s newgoroutine) ScheduleRecursive(task func(self func())) {
 	go inner.ScheduleRecursive(task)
 }
 
-func (s newgoroutine) ScheduleFutureRecursive(timeout time.Duration, task func(self func(time.Duration))) {
+func (s newgoroutine) ScheduleFuture(due time.Duration, task func()) {
+	go func() {
+		time.Sleep(due)
+		task()
+	}()
+}
+
+func (s newgoroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
 	inner := &Trampoline{}
-	go inner.ScheduleFutureRecursive(timeout,task)
+	go inner.ScheduleFutureRecursive(due, task)
 }
 
 func (s newgoroutine) IsAsynchronous() bool {
@@ -39,4 +49,3 @@ func (s newgoroutine) IsSerial() bool {
 func (s newgoroutine) IsConcurrent() bool {
 	return true
 }
-
