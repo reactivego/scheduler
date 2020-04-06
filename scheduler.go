@@ -27,8 +27,12 @@ type Scheduler interface {
 	// task should be executed.
 	ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration)))
 
+	// Cancel will remove all queued tasks from the scheduler. A running task is
+	// not affected by cancel and will continue until it is finished.
+	Cancel()
+
 	// IsAsynchronous returns true when the dispatch methods Schedule,
-	// ScheduleRecursive, ScheduleFuture and ScheduleFutureRecursive 
+	// ScheduleRecursive, ScheduleFuture and ScheduleFutureRecursive
 	// methods return before the scheduled task has run to completion.
 	//
 	// A scheduler that is not asynchronous is synchronous. This means the

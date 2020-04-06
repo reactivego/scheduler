@@ -6,4 +6,4 @@ package scheduler
 // The CurrentGoroutine scheduler is not safe to use from multiple goroutines
 // at the same time. It should be used purely for scheduling tasks from the
 // current goroutine.
-var CurrentGoroutine = &Trampoline{}
+var CurrentGoroutine = MakeTrampoline()

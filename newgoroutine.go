@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -9,43 +11,68 @@ import (
 // NewGoroutine scheduler from multiple concurrently running goroutines.
 // Nested tasks dispatched inside ScheduleRecursive by calling the
 // function self() will be asynchronous and serial.
-var NewGoroutine = &newgoroutine{}
+var NewGoroutine = makeNewGoroutine()
 
-type newgoroutine struct{}
+func makeNewGoroutine() *newgoroutine {
+	return &newgoroutine{}
+}
 
-func (s newgoroutine) Now() time.Time {
+type newgoroutine struct {
+	concurrent int32
+}
+
+func (s *newgoroutine) Now() time.Time {
 	return time.Now()
 }
 
-func (s newgoroutine) Schedule(task func()) {
-	go task()
-}
-
-func (s newgoroutine) ScheduleRecursive(task func(self func())) {
-	inner := &Trampoline{}
-	go inner.ScheduleRecursive(task)
-}
-
-func (s newgoroutine) ScheduleFuture(due time.Duration, task func()) {
+func (s *newgoroutine) Schedule(task func()) {
 	go func() {
+		atomic.AddInt32(&s.concurrent, 1)
+		defer atomic.AddInt32(&s.concurrent, -1)
+		task()
+	}()
+}
+
+func (s *newgoroutine) ScheduleRecursive(task func(self func())) {
+	go func() {
+		atomic.AddInt32(&s.concurrent, 1)
+		defer atomic.AddInt32(&s.concurrent, -1)
+		MakeTrampoline().ScheduleRecursive(task)
+	}()
+}
+
+func (s *newgoroutine) ScheduleFuture(due time.Duration, task func()) {
+	go func() {
+		atomic.AddInt32(&s.concurrent, 1)
+		defer atomic.AddInt32(&s.concurrent, -1)
 		time.Sleep(due)
 		task()
 	}()
 }
 
-func (s newgoroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
-	inner := &Trampoline{}
-	go inner.ScheduleFutureRecursive(due, task)
+func (s *newgoroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
+	go func() {
+		atomic.AddInt32(&s.concurrent, 1)
+		defer atomic.AddInt32(&s.concurrent, -1)
+		MakeTrampoline().ScheduleFutureRecursive(due, task)
+	}()
 }
 
-func (s newgoroutine) IsAsynchronous() bool {
+func (s *newgoroutine) Cancel() {
+}
+
+func (s *newgoroutine) IsAsynchronous() bool {
 	return true
 }
 
-func (s newgoroutine) IsSerial() bool {
+func (s *newgoroutine) IsSerial() bool {
 	return false
 }
 
-func (s newgoroutine) IsConcurrent() bool {
+func (s *newgoroutine) IsConcurrent() bool {
 	return true
+}
+
+func (s *newgoroutine) String() string {
+	return fmt.Sprintf("NewGoroutine{ Asynchronous:Concurrent(%d) }", s.concurrent)
 }

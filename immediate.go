@@ -33,6 +33,9 @@ func (s immediate) ScheduleFutureRecursive(due time.Duration, task func(self fun
 	task(func(due time.Duration) { s.ScheduleFutureRecursive(due, task) })
 }
 
+func (s immediate) Cancel() {
+}
+
 func (s immediate) IsAsynchronous() bool {
 	return false
 }
@@ -43,4 +46,8 @@ func (s immediate) IsSerial() bool {
 
 func (s immediate) IsConcurrent() bool {
 	return false
+}
+
+func (s immediate) String() string {
+	return "Immediate{ Synchronous:Immediate }"
 }

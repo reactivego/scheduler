@@ -7,7 +7,13 @@ import (
 // Goroutine is a scheduler that dispatches tasks asynchronously and runs them
 // concurrently. It is safe to use the Goroutine scheduler from concurrently
 // running tasks.
+// Note that the recursive scheduling functions will schedule recursively on a
+// new goroutine.
 type Goroutine struct{}
+
+func MakeGoroutine() *Goroutine {
+	return &Goroutine{}
+}
 
 func (s Goroutine) Now() time.Time {
 	return time.Now()
@@ -52,6 +58,11 @@ func (s Goroutine) ScheduleFutureRecursive(due time.Duration, task func(self fun
 	}()
 }
 
+// Cancel will remove all queued tasks from the scheduler. A running task is
+// not affected by cancel and will continue until it is finished.
+func (s Goroutine) Cancel() {
+}
+
 // IsAsynchronous returns true.
 func (s Goroutine) IsAsynchronous() bool {
 	return true
@@ -65,4 +76,8 @@ func (s Goroutine) IsSerial() bool {
 // IsConcurrent returns true.
 func (s Goroutine) IsConcurrent() bool {
 	return true
+}
+
+func (s Goroutine) String() string {
+	return "Goroutine{ Asynchronous:Concurrent }"
 }

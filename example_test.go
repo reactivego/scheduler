@@ -109,7 +109,7 @@ func Example_newGoroutine() {
 }
 
 func ExampleTrampoline() {
-	tramp := &Trampoline{}
+	tramp := MakeTrampoline()
 	fmt.Println("before")
 	// Synchronous & Immediate
 	tramp.Schedule(func() {
@@ -142,7 +142,7 @@ func ExampleTrampoline() {
 }
 
 func ExampleTrampoline_ScheduleRecursive() {
-	tramp := &Trampoline{}
+	tramp := MakeTrampoline()
 	fmt.Println("before")
 
 	i := 0
@@ -164,7 +164,7 @@ func ExampleTrampoline_ScheduleRecursive() {
 }
 
 func ExampleTrampoline_ScheduleFuture() {
-	tramp := &Trampoline{}
+	tramp := MakeTrampoline()
 	fmt.Println("before")
 	// Synchronous & Immediate
 	tramp.ScheduleFuture(10*time.Millisecond, func() {
@@ -196,14 +196,13 @@ func ExampleTrampoline_ScheduleFuture() {
 	// after
 }
 
-
 func ExampleTrampoline_ScheduleFutureRecursive() {
 	const asap = 0
 	const _5ms = 5 * time.Millisecond
 	const _10ms = 2 * _5ms
 	const _20ms = 2 * _10ms
 
-	tramp := &Trampoline{}
+	tramp := MakeTrampoline()
 	fmt.Println("before")
 
 	tramp.ScheduleFutureRecursive(asap, func(self func(time.Duration)) {
@@ -231,4 +230,27 @@ func ExampleTrampoline_ScheduleFutureRecursive() {
 	// leaf 5ms
 	// leaf 10ms
 	// after
+}
+
+func ExampleNewGoroutine_cancel() {
+	s := NewGoroutine
+
+	const _10ms = 10 * time.Millisecond
+
+	s.ScheduleFuture(_10ms, func() {
+		// do nothing....
+	})
+
+	s.ScheduleFutureRecursive(_10ms, func(self func(due time.Duration)) {
+		// do nothing....
+		self(_10ms)
+	})
+
+	time.Sleep(100 * time.Millisecond)
+
+	s.Cancel()
+	fmt.Println(s)
+
+	// Output:
+	// NewGoroutine{ Asynchronous:Concurrent(0) }
 }

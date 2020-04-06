@@ -8,12 +8,12 @@ Package `scheduler` implements task schedulers. Scheduling can be characterized 
 
 **Root Dispatch** is defined as using the `Schedule` or `ScheduleRecursive` method of a scheduler to schedule a task.
 
-**Nested Dispatch** is defined as using the `self` function inside `ScheduleRecursive` to schedule a nested task.
+**Recursive Dispatch** is defined as using the `self` function inside `ScheduleRecursive` to schedule a nested task.
 
 Below is an overview of the schedulers exported by the `scheduler` package:
 
 
-| Scheduler 			| Root Dispatch			| Nested Dispatch		|
+| Scheduler 			| Root Dispatch			| Recursive Dispatch		|
 | ---:      				| ---  						| ---    					|
 | **`Immediate`**			| synchronous & immediate 	| synchronous & immediate 	|
 | **`CurrentGoroutine`**	| synchronous & immediate <sup>*</sup> 	| asynchronous & serial		|
@@ -23,4 +23,4 @@ Below is an overview of the schedulers exported by the `scheduler` package:
 
 > <sup>*</sup> The scheduler is *synchronous & immediate* when no tasks are scheduled; however, when at least one task is scheduled it is *asynchronous & serial*.
 
-The schedulers **`Immediate`**, **`CurrentGoroutine`** and **`NewGoroutine`** are predefined variables and can be used directly. The other two schedulers *`Trampoline`* and *`Goroutine`* both of type *`struct`* need to be instantiated, e.g. `scheduler := &Trampoline{}`, before they can be used.
+The schedulers **`Immediate`**, **`CurrentGoroutine`** and **`NewGoroutine`** are predefined variables and can be used directly. The other two schedulers *`Trampoline`* and *`Goroutine`* both of type *`struct`* need to be instantiated, e.g. `scheduler := MakeTrampoline()` or `scheduler := MakeGoroutine()`, before they can be used.
