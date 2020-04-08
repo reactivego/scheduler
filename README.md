@@ -10,17 +10,6 @@ Package `scheduler` implements task schedulers. Scheduling can be characterized 
 
 **Recursive Dispatch** is defined as using the `self` function inside `ScheduleRecursive` to schedule a nested task.
 
-Below is an overview of the schedulers exported by the `scheduler` package:
+This package defines the schedulers **`Trampoline`** and **`Goroutine`** as public variables that can be used directly.
 
-
-| Scheduler 			| Root Dispatch			| Recursive Dispatch		|
-| ---:      				| ---  						| ---    					|
-| **`Immediate`**			| synchronous & immediate 	| synchronous & immediate 	|
-| **`CurrentGoroutine`**	| synchronous & immediate <sup>*</sup> 	| asynchronous & serial		|
-| *`Trampoline`*				| synchronous & immediate <sup>*</sup> 	| asynchronous & serial		|
-| **`NewGoroutine`**		| asynchronous & concurrent	| asynchronous & serial		|
-| *`Goroutine`*				| asynchronous & concurrent	| asynchronous & concurrent	|
-
-> <sup>*</sup> The scheduler is *synchronous & immediate* when no tasks are scheduled; however, when at least one task is scheduled it is *asynchronous & serial*.
-
-The schedulers **`Immediate`**, **`CurrentGoroutine`** and **`NewGoroutine`** are predefined variables and can be used directly. The other two schedulers *`Trampoline`* and *`Goroutine`* both of type *`struct`* need to be instantiated, e.g. `scheduler := MakeTrampoline()` or `scheduler := MakeGoroutine()`, before they can be used.
+To manually create a scheduler, use e.g. `scheduler.MakeTrampoline()` or `scheduler.MakeGoroutine()`.

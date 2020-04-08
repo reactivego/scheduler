@@ -33,28 +33,12 @@ type Scheduler interface {
 
 	// IsAsynchronous returns true when the dispatch methods Schedule,
 	// ScheduleRecursive, ScheduleFuture and ScheduleFutureRecursive
-	// methods return before the scheduled task has run to completion.
+	// return before the scheduled task has run to completion.
 	//
-	// A scheduler that is not asynchronous is synchronous. This means the
-	// schedule methods will only return when the task has finished running.
-	//
-	// For some schedulers the value returned here changes based on
-	// whether a task is currently scheduled on the scheduler or not.
+	// An empty Trampoline scheduler's first schedule method call will be
+	// synchronous. This means the schedule methods will only return when the
+	// task has finished running. For the Trampoline scheduler the value
+	// returned here changes based on whether a task is currently scheduled on
+	// the scheduler or not.
 	IsAsynchronous() bool
-
-	// IsSerial returns true when the scheduler adds a scheduled task to
-	// a queue. A single goroutine then takes tasks of the queue and runs
-	// them in sequence.
-	//
-	// For some schedulers the value returned here changes based on whether
-	// a task is currently scheduled on the scheduler or not.
-	//
-	// A scheduler that is not serial or concurrent runs tasks immediately.
-	IsSerial() bool
-
-	// IsConcurrent returns true when the scheduler starts a scheduled
-	// task to run concurrently alongside other scheduled tasks.
-	//
-	// A scheduler that is not serial or concurrent runs tasks immediately.
-	IsConcurrent() bool
 }

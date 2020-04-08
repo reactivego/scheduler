@@ -5,20 +5,25 @@ import (
 	"time"
 )
 
-// Trampoline scheduler schedules a task to occur after the currently
-// running task completes. A task scheduled on an empty trampoline
-// will be dispatched sychronously and run immediately, while tasks
-// scheduled by that task will be dispatched asynchronously and serial.
-//
-// Trampoline scheduler is not safe to use from multiple goroutines at
-// the same time. It should be used purely for scheduling tasks from a
-// single goroutine.
-type Trampoline struct {
-	*trampoline
+// Trampoline is a serial (non-concurrent) scheduler that runs all tasks on 
+// a single goroutine. The first task scheduled on an empty trampoline
+// scheduler will run immediately and the Schedule function will return only
+// once the task has finished. However, the tasks scheduled by that initial
+// task will be dispatched asynchronously because they are added to a serial
+// queue. Now when the first task is finished, before returning to the user
+// all tasks scheduled on the serial queue will be performed in dispatch order.
+// 
+// The Trampoline scheduler is not safe to use from multiple goroutines at the
+// same time. It should be used purely for scheduling tasks from a single
+// goroutine.
+var Trampoline = MakeTrampoline()
+
+type trampoline struct {
+	*trampo
 	cancel chan struct{}
 }
 
-type trampoline struct {
+type trampo struct {
 	tasks []task
 }
 
@@ -27,46 +32,47 @@ type task struct {
 	run func()
 }
 
-// MakeTrampoline creates a new Trampoline scheduler instance.
-func MakeTrampoline() *Trampoline {
-	return &Trampoline{&trampoline{}, make(chan struct{})}
+// MakeTrampoline creates and returns a new serial (non-concurrent) scheduler
+// instance. The returned instance implements the Scheduler interface.
+func MakeTrampoline() *trampoline {
+	return &trampoline{&trampo{}, make(chan struct{})}
 }
 
-func (s *Trampoline) Add() *Trampoline {
-	return &Trampoline{s.trampoline, make(chan struct{})}
+func (s *trampoline) Add() *trampoline {
+	return &trampoline{s.trampo, make(chan struct{})}
 }
 
 // Len for sort.Sort support
-func (s *Trampoline) Len() int {
+func (s *trampoline) Len() int {
 	return len(s.tasks)
 }
 
 // Less for sort.Sort support
-func (s *Trampoline) Less(i, j int) bool {
+func (s *trampoline) Less(i, j int) bool {
 	return s.tasks[i].at.Before(s.tasks[j].at)
 }
 
 // Swap for sort.Sort support
-func (s *Trampoline) Swap(i, j int) {
+func (s *trampoline) Swap(i, j int) {
 	s.tasks[i], s.tasks[j] = s.tasks[j], s.tasks[i]
 }
 
 // Now returns the current time according to the scheduler.
-func (s *Trampoline) Now() time.Time {
+func (s *trampoline) Now() time.Time {
 	return time.Now()
 }
 
 // Schedule will dispatch the first task synchronously and any subsequent
 // tasks asynchronously on a task queue. So when the first task eventually
 // returns the queue of tasks is empty again.
-func (s *Trampoline) Schedule(task func()) {
+func (s *trampoline) Schedule(task func()) {
 	s.ScheduleFuture(0, task)
 }
 
 // ScheduleRecursive will dispatch the first task synchronously
 // and any subsequent tasks asynchronously on a task queue. So when
 // the first task eventually returns the queue of tasks is empty again.
-func (s *Trampoline) ScheduleRecursive(task func(self func())) {
+func (s *trampoline) ScheduleRecursive(task func(self func())) {
 	self := func() {
 		s.ScheduleRecursive(task)
 	}
@@ -79,7 +85,7 @@ func (s *Trampoline) ScheduleRecursive(task func(self func())) {
 // tasks asynchronously on a task queue. So when the first task eventually
 // returns the queue of tasks is empty again. The due parameter determines how
 // far in the future the task will be scheduled.
-func (s *Trampoline) ScheduleFuture(due time.Duration, taskfunc func()) {
+func (s *trampoline) ScheduleFuture(due time.Duration, taskfunc func()) {
 	s.tasks = append(s.tasks, task{at: s.Now().Add(due), run: taskfunc})
 	sort.Stable(s)
 	if len(s.tasks) == 1 {
@@ -118,7 +124,7 @@ func (s *Trampoline) ScheduleFuture(due time.Duration, taskfunc func()) {
 // The task will be scheduled after the time period has passed.
 // To schedule for the next period, the code should call the self function.
 // Just returning from the task function will terminate a task.
-func (s *Trampoline) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
+func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
 	self := func(due time.Duration) {
 		s.ScheduleFutureRecursive(due, task)
 	}
@@ -129,38 +135,23 @@ func (s *Trampoline) ScheduleFutureRecursive(due time.Duration, task func(self f
 
 // Cancel will remove all queued tasks from the scheduler. A running task is
 // not affected by cancel and will continue until ist is finished.
-func (s *Trampoline) Cancel() {
+func (s *trampoline) Cancel() {
 	if s.cancel != nil {
 		close(s.cancel)
 	}
 }
 
 // IsAsynchronous returns false when no task is currently scheduled.
-func (s Trampoline) IsAsynchronous() bool {
+func (s trampoline) IsAsynchronous() bool {
 	return len(s.tasks) > 0
 }
 
-// IsSerial returns false when no task is currently scheduled.
-func (s Trampoline) IsSerial() bool {
-	return len(s.tasks) > 0
-}
-
-// IsConcurrent returns false.
-func (s Trampoline) IsConcurrent() bool {
-	return false
-}
-
-func (s Trampoline) String() string {
+func (s trampoline) String() string {
 	str := "Trampoline"
 	if s.IsAsynchronous() {
-		str += "{ Asynchronous:"
+		str += "{ Asynchronous:Serial }"
 	} else {
-		str += "{ Synchronous:"
-	}
-	if s.IsSerial() {
-		str += "Serial }"
-	} else {
-		str += "Immediate }"
+		str += "{ Synchronous:Immdediate }"
 	}
 	return str
 }

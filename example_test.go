@@ -6,54 +6,24 @@ import (
 	"time"
 )
 
-// Immediate scheduler will dispatch a task synchronously and run it
-// immediately. It will also schedule recursive tasks immediately,
-// so it can run out of stack space for very deep recursion.
-func Example_immediate() {
-	// Synchronous & Immediate
-	fmt.Println("before")
-	Immediate.Schedule(func() {
-		fmt.Println("> outer")
+// A task scheduled on an empty trampoline will dispatch sychronously
+// and run immediately, while tasks scheduled by that task will dispatch
+// asynchronously because they are added to a serial queue and executed at
+// a later moment.
+func Example_trampoline() {
+	s := Trampoline
 
-		Immediate.Schedule(func() {
-			fmt.Println("> inner")
-
-			Immediate.Schedule(func() {
-				fmt.Println("leaf")
-			})
-
-			fmt.Println("< inner")
-		})
-
-		fmt.Println("< outer")
-	})
-	fmt.Println("after")
-
-	// Output:
-	// before
-	// > outer
-	// > inner
-	// leaf
-	// < inner
-	// < outer
-	// after
-}
-
-// CurrentGoroutine scheduler is a Trampoline scheduler. A task scheduled on
-// an empty trampoline will be dispatched sychronously and run immediately,
-// while tasks scheduled by that task will be asynchronous and serial.
-func Example_currentGoroutine() {
 	fmt.Println("before")
 	// Synchronous & Immediate
-	CurrentGoroutine.Schedule(func() {
+	s.Schedule(func() {
 		fmt.Println("> outer")
 
 		// Asynchronous & Serial
-		CurrentGoroutine.Schedule(func() {
+		s.Schedule(func() {
 			fmt.Println("> inner")
 
 			// Asynchronous & Serial
-			CurrentGoroutine.Schedule(func() {
+			s.Schedule(func() {
 				fmt.Println("leaf")
 			})
 
@@ -74,74 +44,7 @@ func Example_currentGoroutine() {
 	// after
 }
 
-// NewGoroutine scheduler will dispatch a task asynchronously and run it
-// concurrently with previously scheduled tasks. Nested tasks dispatched
-// inside ScheduleRecursive by calling the function self() will be
-// asynchronous and serial.
-func Example_newGoroutine() {
-	fmt.Println("before")
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	i := 0
-	NewGoroutine.ScheduleRecursive(func(self func()) {
-		fmt.Println(i)
-		i++
-		if i < 5 {
-			self()
-		} else {
-			wg.Done()
-		}
-	})
-	fmt.Println("after")
-
-	// Wait for the goroutine to finish.
-	wg.Wait()
-
-	// Output:
-	// before
-	// after
-	// 0
-	// 1
-	// 2
-	// 3
-	// 4
-}
-
-func ExampleTrampoline() {
-	tramp := MakeTrampoline()
-	fmt.Println("before")
-	// Synchronous & Immediate
-	tramp.Schedule(func() {
-		fmt.Println("> outer")
-
-		// Asynchronous & Serial
-		tramp.Schedule(func() {
-			fmt.Println("> inner")
-
-			// Asynchronous & Serial
-			tramp.Schedule(func() {
-				fmt.Println("leaf")
-			})
-
-			fmt.Println("< inner")
-		})
-
-		fmt.Println("< outer")
-	})
-	fmt.Println("after")
-
-	// Output:
-	// before
-	// > outer
-	// < outer
-	// > inner
-	// < inner
-	// leaf
-	// after
-}
-
-func ExampleTrampoline_ScheduleRecursive() {
+func ExampleMakeTrampoline_scheduleRecursive() {
 	tramp := MakeTrampoline()
 	fmt.Println("before")
 
@@ -163,7 +66,7 @@ func ExampleTrampoline_ScheduleRecursive() {
 	// after
 }
 
-func ExampleTrampoline_ScheduleFuture() {
+func ExampleMakeTrampoline_scheduleFuture() {
 	tramp := MakeTrampoline()
 	fmt.Println("before")
 	// Synchronous & Immediate
@@ -196,7 +99,7 @@ func ExampleTrampoline_ScheduleFuture() {
 	// after
 }
 
-func ExampleTrampoline_ScheduleFutureRecursive() {
+func ExampleMakeTrampoline_scheduleFutureRecursive() {
 	const asap = 0
 	const _5ms = 5 * time.Millisecond
 	const _10ms = 2 * _5ms
@@ -232,8 +135,45 @@ func ExampleTrampoline_ScheduleFutureRecursive() {
 	// after
 }
 
-func ExampleNewGoroutine_cancel() {
-	s := NewGoroutine
+
+// Goroutine scheduler will dispatch a task asynchronously and run it
+// concurrently with previously scheduled tasks. Nested tasks dispatched
+// inside ScheduleRecursive by calling the function self() will be
+// asynchronous and serial.
+func Example_goroutine() {
+	s := Goroutine
+
+	fmt.Println("before")
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	i := 0
+	s.ScheduleRecursive(func(self func()) {
+		fmt.Println(i)
+		i++
+		if i < 5 {
+			self()
+		} else {
+			wg.Done()
+		}
+	})
+	fmt.Println("after")
+
+	// Wait for the goroutine to finish.
+	wg.Wait()
+
+	// Output:
+	// before
+	// after
+	// 0
+	// 1
+	// 2
+	// 3
+	// 4
+}
+
+func ExampleMakeGoroutine_cancel() {
+	s := MakeGoroutine()
 
 	const _10ms = 10 * time.Millisecond
 
@@ -252,5 +192,5 @@ func ExampleNewGoroutine_cancel() {
 	fmt.Println(s)
 
 	// Output:
-	// NewGoroutine{ Asynchronous:Concurrent(0) }
+	// Goroutine{ Asynchronous:Concurrent(0) }
 }
