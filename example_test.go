@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -32,6 +31,7 @@ func Example_trampoline() {
 
 		fmt.Println("< outer")
 	})
+	s.Wait()
 	fmt.Println("after")
 
 	// Output:
@@ -56,6 +56,7 @@ func ExampleMakeTrampoline_scheduleRecursive() {
 			self()
 		}
 	})
+	tramp.Wait()
 	fmt.Println("after")
 
 	// Output:
@@ -87,6 +88,7 @@ func ExampleMakeTrampoline_scheduleFuture() {
 
 		fmt.Println("< outer")
 	})
+	tramp.Wait()
 	fmt.Println("after")
 
 	// Output:
@@ -123,6 +125,7 @@ func ExampleMakeTrampoline_scheduleFutureRecursive() {
 
 		fmt.Println("< outer")
 	})
+	tramp.Wait()
 
 	fmt.Println("after")
 
@@ -135,7 +138,6 @@ func ExampleMakeTrampoline_scheduleFutureRecursive() {
 	// after
 }
 
-
 // Goroutine scheduler will dispatch a task asynchronously and run it
 // concurrently with previously scheduled tasks. Nested tasks dispatched
 // inside ScheduleRecursive by calling the function self() will be
@@ -145,24 +147,20 @@ func Example_goroutine() {
 
 	fmt.Println("before")
 
-	var wg sync.WaitGroup
-	wg.Add(1)
 	i := 0
 	s.ScheduleRecursive(func(self func()) {
 		fmt.Println(i)
 		i++
 		if i < 5 {
 			self()
-		} else {
-			wg.Done()
 		}
 	})
 	fmt.Println("after")
 
 	// Wait for the goroutine to finish.
-	wg.Wait()
+	s.Wait()
 
-	// Output:
+	// Unordered output:
 	// before
 	// after
 	// 0
@@ -181,14 +179,14 @@ func ExampleMakeGoroutine_cancel() {
 		// do nothing....
 	})
 
-	s.ScheduleFutureRecursive(_10ms, func(self func(due time.Duration)) {
+	c := s.ScheduleFutureRecursive(_10ms, func(self func(due time.Duration)) {
 		// do nothing....
 		self(_10ms)
 	})
+	c.Cancel()
 
 	time.Sleep(100 * time.Millisecond)
 
-	s.Cancel()
 	fmt.Println(s)
 
 	// Output:

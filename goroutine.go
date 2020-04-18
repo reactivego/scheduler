@@ -2,11 +2,12 @@ package scheduler
 
 import (
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
-// Goroutine is a concurrent scheduler. Schedule methods dispatch tasks 
+// Goroutine is a concurrent scheduler. Schedule methods dispatch tasks
 // asynchronously, running them concurrently with previously scheduled tasks.
 // It is safe to call the Goroutine scheduling methods from multiple
 // concurrently running goroutines. Nested tasks dispatched inside e.g.
@@ -20,72 +21,107 @@ func MakeGoroutine() *goroutine {
 	return &goroutine{}
 }
 
+// cancel
+
+type cancel chan struct{}
+
+func (c cancel) Cancel() {
+	close(c)
+}
+
+// goroutine
+
 type goroutine struct {
-	concurrent int32
+	sync.Mutex
+	trampolines []*trampoline
+	concurrent  sync.WaitGroup
+	active      int32
 }
 
 func (s *goroutine) Now() time.Time {
 	return time.Now()
 }
 
-// Schedule a task; dispatch it asynchronously to run concurrently as a
-// new goroutine.
-func (s *goroutine) Schedule(task func()) {
+func (s *goroutine) Since(t time.Time) time.Duration {
+	return s.Now().Sub(t)
+}
+
+func (s *goroutine) Schedule(task func()) Runner {
+	cancel := make(cancel)
 	go func() {
-		atomic.AddInt32(&s.concurrent, 1)
-		defer atomic.AddInt32(&s.concurrent, -1)
-		task()
+		atomic.AddInt32(&s.active, 1)
+		defer atomic.AddInt32(&s.active, -1)
+		s.concurrent.Add(1)
+		defer s.concurrent.Done()
+		select {
+		case <-cancel:
+			// cancel
+		default:
+			task()
+		}
 	}()
+	return cancel
 }
 
-// ScheduleRecursive schedules a task; dispatches it asynchronously to run
-// concurrently as a new goroutine. Inside a task scheduled with
-// ScheduleRecursive, using the self() function will asynchronously
-// reschedule the task to run concurrently with itself.
-func (s *goroutine) ScheduleRecursive(task func(self func())) {
+func (s *goroutine) ScheduleRecursive(task func(self func())) Runner {
+	runner := make(chan Runner, 1)
 	go func() {
-		atomic.AddInt32(&s.concurrent, 1)
-		defer atomic.AddInt32(&s.concurrent, -1)
-		MakeTrampoline().ScheduleRecursive(task)
+		atomic.AddInt32(&s.active, 1)
+		defer atomic.AddInt32(&s.active, -1)
+		s.concurrent.Add(1)
+		defer s.concurrent.Done()
+		trampoline := MakeTrampoline()
+		runner <- trampoline.ScheduleRecursive(task)
+		trampoline.Wait()
 	}()
+	return <-runner
 }
 
-// ScheduleFuture schedules a task; dispatches it asynchronously to run
-// concurrently as a new goroutine. The goroutine will wait until the
-// time is due to run the task.
-func (s *goroutine) ScheduleFuture(due time.Duration, task func()) {
+func (s *goroutine) ScheduleFuture(due time.Duration, task func()) Runner {
+	cancel := make(cancel)
 	go func() {
-		atomic.AddInt32(&s.concurrent, 1)
-		defer atomic.AddInt32(&s.concurrent, -1)
-		time.Sleep(due)
-		task()
+		atomic.AddInt32(&s.active, 1)
+		defer atomic.AddInt32(&s.active, -1)
+		s.concurrent.Add(1)
+		defer s.concurrent.Done()
+		if due > 0 {
+			due := time.NewTimer(due)
+			select {
+			case <-cancel:
+				due.Stop()
+			case <-due.C:
+				task()
+			}
+		} else {
+			select {
+			case <-cancel:
+				// cancel
+			default:
+				task()
+			}
+		}
 	}()
+	return cancel
 }
 
-// ScheduleFutureRecursive schedules a task; dispatches it asynchronously to
-// run concurrently as a new goroutine at some moment in the future. Inside a
-// task scheduled with ScheduleRecursiveFuture, using the self(due) function
-// will asynchronously reschedule the task to run concurrently with itself
-// at some moment in time in the future.
-func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) {
+func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) Runner {
+	runner := make(chan Runner, 1)
 	go func() {
-		atomic.AddInt32(&s.concurrent, 1)
-		defer atomic.AddInt32(&s.concurrent, -1)
-		MakeTrampoline().ScheduleFutureRecursive(due, task)
+		atomic.AddInt32(&s.active, 1)
+		defer atomic.AddInt32(&s.active, -1)
+		s.concurrent.Add(1)
+		defer s.concurrent.Done()
+		trampoline := MakeTrampoline()
+		runner <- trampoline.ScheduleFutureRecursive(due, task)
+		trampoline.Wait()
 	}()
+	return <-runner
 }
 
-
-// Cancel will remove all queued tasks from the scheduler. A running task is
-// not affected by cancel and will continue until it is finished.
-func (s *goroutine) Cancel() {
-}
-
-// IsAsynchronous returns true.
-func (s *goroutine) IsAsynchronous() bool {
-	return true
+func (s *goroutine) Wait() {
+	s.concurrent.Wait()
 }
 
 func (s *goroutine) String() string {
-	return fmt.Sprintf("Goroutine{ Asynchronous:Concurrent(%d) }", s.concurrent)
+	return fmt.Sprintf("Goroutine{ Asynchronous:Concurrent(%d) }", atomic.LoadInt32(&s.active))
 }
