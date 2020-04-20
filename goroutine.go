@@ -48,10 +48,10 @@ func (s *goroutine) Since(t time.Time) time.Duration {
 
 func (s *goroutine) Schedule(task func()) Runner {
 	cancel := make(cancel)
+	atomic.AddInt32(&s.active, 1)
+	s.concurrent.Add(1)
 	go func() {
-		atomic.AddInt32(&s.active, 1)
 		defer atomic.AddInt32(&s.active, -1)
-		s.concurrent.Add(1)
 		defer s.concurrent.Done()
 		select {
 		case <-cancel:
@@ -65,10 +65,10 @@ func (s *goroutine) Schedule(task func()) Runner {
 
 func (s *goroutine) ScheduleRecursive(task func(self func())) Runner {
 	runner := make(chan Runner, 1)
+	atomic.AddInt32(&s.active, 1)
+	s.concurrent.Add(1)
 	go func() {
-		atomic.AddInt32(&s.active, 1)
 		defer atomic.AddInt32(&s.active, -1)
-		s.concurrent.Add(1)
 		defer s.concurrent.Done()
 		trampoline := MakeTrampoline()
 		runner <- trampoline.ScheduleRecursive(task)
@@ -79,10 +79,10 @@ func (s *goroutine) ScheduleRecursive(task func(self func())) Runner {
 
 func (s *goroutine) ScheduleFuture(due time.Duration, task func()) Runner {
 	cancel := make(cancel)
+	atomic.AddInt32(&s.active, 1)
+	s.concurrent.Add(1)
 	go func() {
-		atomic.AddInt32(&s.active, 1)
 		defer atomic.AddInt32(&s.active, -1)
-		s.concurrent.Add(1)
 		defer s.concurrent.Done()
 		if due > 0 {
 			due := time.NewTimer(due)
@@ -106,10 +106,10 @@ func (s *goroutine) ScheduleFuture(due time.Duration, task func()) Runner {
 
 func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) Runner {
 	runner := make(chan Runner, 1)
+	atomic.AddInt32(&s.active, 1)
+	s.concurrent.Add(1)
 	go func() {
-		atomic.AddInt32(&s.active, 1)
 		defer atomic.AddInt32(&s.active, -1)
-		s.concurrent.Add(1)
 		defer s.concurrent.Done()
 		trampoline := MakeTrampoline()
 		runner <- trampoline.ScheduleFutureRecursive(due, task)
