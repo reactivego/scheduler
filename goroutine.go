@@ -123,5 +123,5 @@ func (s *goroutine) Wait() {
 }
 
 func (s *goroutine) String() string {
-	return fmt.Sprintf("Goroutine{ Asynchronous:Concurrent(%d) }", atomic.LoadInt32(&s.active))
+	return fmt.Sprintf("Goroutine{ goroutines = %d }", atomic.LoadInt32(&s.active))
 }

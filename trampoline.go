@@ -132,5 +132,5 @@ func (s *trampoline) Wait() {
 }
 
 func (s trampoline) String() string {
-	return fmt.Sprintf("Trampoline{ Asynchronous:Serial(%d) }", len(s.tasks))
+	return fmt.Sprintf("Trampoline{ tasks = %d }", len(s.tasks))
 }
