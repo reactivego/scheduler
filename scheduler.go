@@ -2,9 +2,9 @@ package scheduler
 
 import "time"
 
-// Scheduler is an interface for scheduling tasks. Dispatching is either
-// Synchronous or Asynchronous. Processing can be Immediate, Serial or
-// Concurrent.
+// Scheduler is an interface for running tasks.
+// Scheduling of tasks is asynchronous/non-blocking.
+// Tasks can be executed in sequence or concurrently.
 type Scheduler interface {
 	// Now returns the current time according to the scheduler.
 	Now() time.Time
@@ -34,6 +34,9 @@ type Scheduler interface {
 	// more tasks running. Note, the currently running task may schedule
 	// additional tasks to the queue to run later.
 	Wait()
+
+	// IsConcurrent returns true for a scheduler that runs tasks concurrently.
+	IsConcurrent() bool
 }
 
 // Runner is an interface to a running task. It can be used to cancel the

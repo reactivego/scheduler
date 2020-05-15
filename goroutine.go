@@ -122,6 +122,10 @@ func (s *goroutine) Wait() {
 	s.concurrent.Wait()
 }
 
+func (s *goroutine) IsConcurrent() bool {
+	return true
+}
+
 func (s *goroutine) String() string {
 	return fmt.Sprintf("Goroutine{ goroutines = %d }", atomic.LoadInt32(&s.active))
 }
