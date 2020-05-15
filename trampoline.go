@@ -6,19 +6,6 @@ import (
 	"time"
 )
 
-// Trampoline is a serial (non-concurrent) scheduler that runs all tasks on
-// a single goroutine. The first task scheduled on an empty trampoline
-// scheduler will run immediately and the Schedule function will return only
-// once the task has finished. However, the tasks scheduled by that initial
-// task will be dispatched asynchronously because they are added to a serial
-// queue. Now when the first task is finished, before returning to the user
-// all tasks scheduled on the serial queue will be performed in dispatch order.
-//
-// The Trampoline scheduler is not safe to use from multiple goroutines at the
-// same time. It should be used purely for scheduling tasks from a single
-// goroutine.
-var Trampoline = MakeTrampoline()
-
 // futuretask
 
 type futuretask struct {
@@ -39,8 +26,15 @@ type trampoline struct {
 	tasks []futuretask
 }
 
-// MakeTrampoline creates and returns a new serial (non-concurrent) scheduler
-// instance. The returned instance implements the Scheduler interface.
+// MakeTrampoline creates and returns a non-concurrent scheduler that runs
+// all tasks on a single goroutine. The returned instance implements the
+// Scheduler interface. Tasks scheduled will be dispatched asynchronously
+// because they are added to a serial queue. Now when the Wait method is called
+// all tasks scheduled on the serial queue will be performed in dispatch order.
+//
+// The Trampoline scheduler is not safe to use from multiple goroutines at the
+// concurrently. It should be used purely for scheduling tasks from a single
+// goroutine.
 func MakeTrampoline() *trampoline {
 	return &trampoline{}
 }

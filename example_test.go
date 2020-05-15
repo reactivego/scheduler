@@ -10,7 +10,7 @@ import (
 // asynchronously because they are added to a serial queue and executed at
 // a later moment.
 func Example_trampoline() {
-	s := Trampoline
+	s := MakeTrampoline()
 
 	fmt.Println("before")
 	// Synchronous & Immediate
@@ -190,5 +190,5 @@ func ExampleMakeGoroutine_cancel() {
 	fmt.Println(s)
 
 	// Output:
-	// Goroutine{ Asynchronous:Concurrent(0) }
+	// Goroutine{ goroutines = 0 }
 }
