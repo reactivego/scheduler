@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"sort"
+	"runtime"
 	"time"
 )
 
@@ -104,24 +105,49 @@ func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(self f
 func (s *trampoline) Wait() {
 	for len(s.tasks) > 0 {
 		task := &s.tasks[0]
-		now := s.Now()
-		if now.Before(task.at) {
-			due := time.NewTimer(task.at.Sub(now))
-			select {
-			case <-task.cancel:
-				due.Stop()
-			case <-due.C:
-				task.run()
-			}
+		if time.Until(task.at) < time.Second {
+			s.ShortWaitAndRun(task)
 		} else {
-			select {
-			case <-task.cancel:
-				// cancel
-			default:
-				task.run()
-			}
+			s.LongWaitAndRun(task)
 		}
 		s.tasks = s.tasks[1:]
+	}
+}
+
+func (s *trampoline) ShortWaitAndRun(task *futuretask) {
+	for time.Now().Before(task.at) {
+		select {
+		case <-task.cancel:
+			return
+		default:
+			runtime.Gosched()
+		}
+	}
+	select {
+	case <-task.cancel:
+		return
+	default:
+		task.run()
+	}
+}
+
+func (s *trampoline) LongWaitAndRun(task *futuretask) {
+	due := time.Until(task.at)
+	if due > 0 {
+		deadline := time.NewTimer(due)
+		select {
+		case <-task.cancel:
+			deadline.Stop()
+			return
+		case <-deadline.C:
+			task.run()
+		}
+	}
+	select {
+	case <-task.cancel:
+		return
+	default:
+		task.run()
 	}
 }
 
