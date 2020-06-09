@@ -2,15 +2,163 @@
 
     import "github.com/reactivego/scheduler"
 
-[![](https://godoc.org/github.com/reactivego/scheduler?status.png)](http://godoc.org/github.com/reactivego/scheduler)
+[![](svg/godev.svg)](https://pkg.go.dev/github.com/reactivego/scheduler?tab=doc)
+[![](svg/godoc.svg)](https://godoc.org/github.com/reactivego/scheduler)
 
-Package `scheduler` implements task schedulers. Tasks are scheduled in a non-blocking asynchronous way.
-Depending on the scheduler the tasks are either executed *in-sequence* or *concurrently*.
+Package `scheduler` provides a concurrent and a serial task scheduler with support for task cancellation.
 
-**Root Dispatch** is defined as using the `Schedule` or `ScheduleRecursive` or `ScheduleFutureRecursive` method of a scheduler to schedule a task.
+The concurrent scheduler is exported as a global public variable with the name **`Goroutine`**.
+This scheduler can be used directly.
 
-**Recursive Dispatch** is defined as using the `self` function inside `ScheduleRecursive` or `ScheduleFutureRecursive` to schedule a nested task.
+A serial scheduler needs to be instantiated by calling the **`MakeTrampoline`** function exported by this package.
 
-This package defines the scheduler **`Goroutine`** as a public variable that can be used directly.
+## Examples
 
-To manually create a scheduler, use e.g. `scheduler.MakeTrampoline()` or `scheduler.MakeGoroutine()`.
+### Concurrent
+
+The concurrent Goroutine scheduler will dispatch a task asynchronously and
+run it concurrently with previously scheduled tasks. Nested tasks dispatched
+inside ScheduleRecursive by calling the function self() will be asynchronous
+and serial.
+
+Code:
+```go
+func Example_concurrent() {
+	concurrent := scheduler.Goroutine
+
+	fmt.Println("BEFORE")
+
+	i := 0
+	concurrent.ScheduleRecursive(func(self func()) {
+		fmt.Println(i)
+		i++
+		if i < 5 {
+			self()
+		}
+	})
+
+	fmt.Println("AFTER")
+
+	// Wait for the goroutine to finish.
+	concurrent.Wait()
+	fmt.Println("tasks =", concurrent.Count())
+}
+```
+Unordered output:
+```
+BEFORE
+AFTER
+0
+1
+2
+3
+4
+tasks = 0
+```
+
+### Serial
+
+The serial Trampoline scheduler will dispatch tasks asynchronously by adding
+them to a serial queue and running them when the Wait method is called.
+
+Code:
+```go
+func Example_serial() {
+	serial := scheduler.MakeTrampoline()
+
+	// Asynchronous & serial
+	serial.Schedule(func() {
+		fmt.Println("> outer")
+
+		// Asynchronous & Serial
+		serial.Schedule(func() {
+			fmt.Println("> inner")
+
+			// Asynchronous & Serial
+			serial.Schedule(func() {
+				fmt.Println("leaf")
+			})
+
+			fmt.Println("< inner")
+		})
+
+		fmt.Println("< outer")
+	})
+
+	fmt.Println("BEFORE WAIT")
+
+	serial.Wait()
+
+	fmt.Printf("AFTER WAIT (tasks = %d)\n", serial.Count())
+}
+```
+Output:
+```
+BEFORE WAIT
+> outer
+< outer
+> inner
+< inner
+leaf
+AFTER WAIT (tasks = 0)
+```
+
+## Interfaces
+
+### Scheduler 
+
+Scheduler is an interface for running tasks. Scheduling of tasks is
+asynchronous/non-blocking. Tasks can be executed in sequence or concurrently.
+
+```go
+type Scheduler interface {
+	// Now returns the current time according to the scheduler.
+	Now() time.Time
+
+	// Since returns the time elapsed, is a shorthand for Now().Sub(t).
+	Since(t time.Time) time.Duration
+
+	// Schedule dispatches a task to the scheduler.
+	Schedule(task func()) Runner
+
+	// ScheduleRecursive dispatches a task to the scheduler. Use the self
+	// function to schedule another iteration of a repeating algorithm on
+	// the scheduler.
+	ScheduleRecursive(task func(self func())) Runner
+
+	// ScheduleFuture dispatches a task to the scheduler to be executed later.
+	// The due time specifies when the task should be executed.
+	ScheduleFuture(due time.Duration, task func()) Runner
+
+	// ScheduleFutureRecursive dispatches a task to the scheduler to be
+	// executed later. Use the self function to schedule another iteration of a
+	// repeating algorithm on the scheduler. The due time specifies when the
+	// task should be executed.
+	ScheduleFutureRecursive(due time.Duration, task func(self func(due time.Duration))) Runner
+
+	// Wait will return when the Cancel() method is called or when there are no
+	// more tasks running. Note, the currently running task may schedule
+	// additional tasks to the queue to run later.
+	Wait()
+
+	// IsConcurrent returns true for a scheduler that runs tasks concurrently.
+	IsConcurrent() bool
+
+	// Count returns the number of currently active tasks.
+	Count() int
+
+	// String representation when printed.
+	String() string
+}
+```
+### Runner
+
+Runner is an interface to a running task. It can be used to cancel the running
+task by calling its Cancel() method.
+
+```go
+type Runner interface {
+	// Cancel the running task.
+	Cancel()
+}
+```
