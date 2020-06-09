@@ -14,8 +14,6 @@ import (
 func Example_concurrent() {
 	concurrent := scheduler.Goroutine
 
-	fmt.Println("BEFORE")
-
 	i := 0
 	concurrent.ScheduleRecursive(func(self func()) {
 		fmt.Println(i)
@@ -25,14 +23,10 @@ func Example_concurrent() {
 		}
 	})
 
-	fmt.Println("AFTER")
-
 	// Wait for the goroutine to finish.
 	concurrent.Wait()
 	fmt.Println("tasks =", concurrent.Count())
-	// Unordered output:
-	// BEFORE
-	// AFTER
+	// Output:
 	// 0
 	// 1
 	// 2
