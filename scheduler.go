@@ -40,6 +40,9 @@ type Scheduler interface {
 
 	// Count returns the number of currently active tasks.
 	Count() int
+
+	// String representation when printed.
+	String() string
 }
 
 // Runner is an interface to a running task. It can be used to cancel the
