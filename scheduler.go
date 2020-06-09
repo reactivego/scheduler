@@ -37,6 +37,9 @@ type Scheduler interface {
 
 	// IsConcurrent returns true for a scheduler that runs tasks concurrently.
 	IsConcurrent() bool
+
+	// Count returns the number of currently active tasks.
+	Count() int
 }
 
 // Runner is an interface to a running task. It can be used to cancel the

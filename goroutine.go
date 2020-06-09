@@ -126,6 +126,10 @@ func (s *goroutine) IsConcurrent() bool {
 	return true
 }
 
+func (s *goroutine) Count() int {
+	return int(atomic.LoadInt32(&s.active))
+}
+
 func (s *goroutine) String() string {
 	return fmt.Sprintf("Goroutine{ goroutines = %d }", atomic.LoadInt32(&s.active))
 }

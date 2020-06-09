@@ -155,6 +155,10 @@ func (s *trampoline) IsConcurrent() bool {
 	return false
 }
 
+func (s *trampoline) Count() int {
+	return len(s.tasks)
+}
+
 func (s trampoline) String() string {
 	return fmt.Sprintf("Trampoline{ tasks = %d }", len(s.tasks))
 }
