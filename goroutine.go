@@ -131,5 +131,5 @@ func (s *goroutine) Count() int {
 }
 
 func (s *goroutine) String() string {
-	return fmt.Sprintf("Goroutine{ goroutines = %d }", atomic.LoadInt32(&s.active))
+	return fmt.Sprintf("Goroutine{ tasks = %d }", atomic.LoadInt32(&s.active))
 }
