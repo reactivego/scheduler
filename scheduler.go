@@ -35,6 +35,9 @@ type Scheduler interface {
 	// additional tasks to the queue to run later.
 	Wait()
 
+	// Gosched will give the scheduler an oportunity to run another task
+	Gosched()
+
 	// IsConcurrent returns true for a scheduler that runs tasks concurrently.
 	IsConcurrent() bool
 

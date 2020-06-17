@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -120,6 +121,10 @@ func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(self fu
 
 func (s *goroutine) Wait() {
 	s.concurrent.Wait()
+}
+
+func (s *goroutine) Gosched() {
+	runtime.Gosched()
 }
 
 func (s *goroutine) IsConcurrent() bool {

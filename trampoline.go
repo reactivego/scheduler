@@ -2,8 +2,8 @@ package scheduler
 
 import (
 	"fmt"
-	"sort"
 	"runtime"
+	"sort"
 	"time"
 )
 
@@ -24,6 +24,7 @@ func (t *futuretask) Cancel() {
 // trampoline
 
 type trampoline struct {
+	gid   string
 	tasks []futuretask
 }
 
@@ -37,7 +38,7 @@ type trampoline struct {
 // concurrently. It should be used purely for scheduling tasks from a single
 // goroutine.
 func MakeTrampoline() *trampoline {
-	return &trampoline{}
+	return &trampoline{gid: Gid()}
 }
 
 func (s *trampoline) Len() int {
@@ -103,15 +104,31 @@ func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(self f
 }
 
 func (s *trampoline) Wait() {
-	for len(s.tasks) > 0 {
-		task := &s.tasks[0]
-		if time.Until(task.at) < time.Second {
-			s.ShortWaitAndRun(task)
-		} else {
-			s.LongWaitAndRun(task)
-		}
-		s.tasks = s.tasks[1:]
+	for s.RunTask() {
 	}
+}
+
+func (s *trampoline) Gosched() {
+	if len(s.gid) > 0 && s.gid == Gid() {
+		if s.RunTask() {
+			return
+		}
+	}
+	runtime.Gosched()
+}
+
+func (s *trampoline) RunTask() bool {
+	if len(s.tasks) == 0 {
+		return false
+	}
+	task := &s.tasks[0]
+	s.tasks = s.tasks[1:]
+	if time.Until(task.at) < time.Second {
+		s.ShortWaitAndRun(task)
+	} else {
+		s.LongWaitAndRun(task)
+	}
+	return true
 }
 
 func (s *trampoline) ShortWaitAndRun(task *futuretask) {
@@ -160,5 +177,5 @@ func (s *trampoline) Count() int {
 }
 
 func (s trampoline) String() string {
-	return fmt.Sprintf("Trampoline{ tasks = %d }", len(s.tasks))
+	return fmt.Sprintf("Trampoline{ gid = %s, tasks = %d }", s.gid, len(s.tasks))
 }
