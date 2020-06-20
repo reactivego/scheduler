@@ -16,10 +16,11 @@ A serial scheduler needs to be instantiated by calling the **`MakeTrampoline`** 
 
 ### Concurrent
 
-The concurrent Goroutine scheduler will dispatch a task asynchronously and
-run it concurrently with previously scheduled tasks. Nested tasks dispatched
-inside ScheduleRecursive by calling the function self() will be asynchronous
-and serial.
+The concurrent Goroutine scheduler will dispatch a task by running it
+concurrently with previously scheduled tasks. These may start running
+immediately after they have been scheduled. Nested tasks dispatched by calling
+the self() function will be placed on a task queue and run in sequence after
+the currently scheduled task returns.
 
 Code:
 ```go
@@ -52,8 +53,8 @@ tasks = 0
 
 ### Serial
 
-The serial Trampoline scheduler will dispatch tasks asynchronously by adding
-them to a serial queue and running them when the Wait method is called.
+The serial Trampoline scheduler will dispatch tasks by adding them to a serial
+queue and running them when the Wait method is called on the scheduler.
 
 Code:
 ```go
@@ -134,6 +135,9 @@ type Scheduler interface {
 	// more tasks running. Note, the currently running task may schedule
 	// additional tasks to the queue to run later.
 	Wait()
+
+	// Gosched will give the scheduler an oportunity to run another task
+	Gosched()
 
 	// IsConcurrent returns true for a scheduler that runs tasks concurrently.
 	IsConcurrent() bool
