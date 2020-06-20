@@ -26,6 +26,7 @@ func (t *futuretask) Cancel() {
 type trampoline struct {
 	gid   string
 	tasks []futuretask
+	current *futuretask
 }
 
 // MakeTrampoline creates and returns a non-concurrent scheduler that runs
@@ -121,13 +122,14 @@ func (s *trampoline) RunTask() bool {
 	if len(s.tasks) == 0 {
 		return false
 	}
-	task := &s.tasks[0]
+	s.current = &s.tasks[0]
 	s.tasks = s.tasks[1:]
-	if time.Until(task.at) < time.Second {
-		s.ShortWaitAndRun(task)
+	if time.Until(s.current.at) < time.Second {
+		s.ShortWaitAndRun(s.current)
 	} else {
-		s.LongWaitAndRun(task)
+		s.LongWaitAndRun(s.current)
 	}
+	s.current = nil
 	return true
 }
 
@@ -173,7 +175,11 @@ func (s *trampoline) IsConcurrent() bool {
 }
 
 func (s *trampoline) Count() int {
-	return len(s.tasks)
+	if s.current == nil {
+		return len(s.tasks)
+	} else {
+		return len(s.tasks) + 1
+	}
 }
 
 func (s trampoline) String() string {
