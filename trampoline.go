@@ -24,8 +24,8 @@ func (t *futuretask) Cancel() {
 // trampoline
 
 type trampoline struct {
-	gid   string
-	tasks []futuretask
+	gid     string
+	tasks   []futuretask
 	current *futuretask
 }
 
@@ -160,6 +160,7 @@ func (s *trampoline) LongWaitAndRun(task *futuretask) {
 			return
 		case <-deadline.C:
 			task.run()
+			return
 		}
 	}
 	select {
