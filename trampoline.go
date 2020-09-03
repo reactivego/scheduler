@@ -124,7 +124,7 @@ func (s *trampoline) RunTask() bool {
 	}
 	s.current = &s.tasks[0]
 	s.tasks = s.tasks[1:]
-	if time.Until(s.current.at) < time.Second {
+	if time.Until(s.current.at) < 999*time.Millisecond {
 		s.ShortWaitAndRun(s.current)
 	} else {
 		s.LongWaitAndRun(s.current)
