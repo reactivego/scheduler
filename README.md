@@ -2,7 +2,7 @@
 
     import "github.com/reactivego/scheduler"
 
-[![Go Reference](https://pkg.go.dev/static/img/badge.svg)](https://pkg.go.dev/github.com/reactivego/scheduler#section-documentation)
+[![Go Reference](https://pkg.go.dev/badge/github.com/reactivego/scheduler.svg)](https://pkg.go.dev/github.com/reactivego/scheduler#section-documentation)
 
 Package `scheduler` provides a concurrent and a serial task scheduler with support for task cancellation.
 
