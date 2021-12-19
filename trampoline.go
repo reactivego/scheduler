@@ -83,7 +83,7 @@ func (s *trampoline) ScheduleRecursive(task func(again func())) Runner {
 	return &t
 }
 
-func (s *trampoline) ScheduleLoop(task func(index int, again func(next int)), from int) Runner {
+func (s *trampoline) ScheduleLoop(from int, task func(index int, again func(next int))) Runner {
 	t := futuretask{cancel: make(chan struct{})}
 	var run func(index int) func()
 	again := func(index int) {

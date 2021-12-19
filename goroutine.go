@@ -78,7 +78,7 @@ func (s *goroutine) ScheduleRecursive(task func(again func())) Runner {
 	return <-runner
 }
 
-func (s *goroutine) ScheduleLoop(task func(index int, again func(next int)), from int) Runner {
+func (s *goroutine) ScheduleLoop(from int, task func(index int, again func(next int))) Runner {
 	runner := make(chan Runner, 1)
 	atomic.AddInt32(&s.active, 1)
 	s.concurrent.Add(1)
@@ -86,7 +86,7 @@ func (s *goroutine) ScheduleLoop(task func(index int, again func(next int)), fro
 		defer atomic.AddInt32(&s.active, -1)
 		defer s.concurrent.Done()
 		trampoline := MakeTrampoline()
-		runner <- trampoline.ScheduleLoop(task, from)
+		runner <- trampoline.ScheduleLoop(from, task)
 		trampoline.Wait()
 	}()
 	return <-runner

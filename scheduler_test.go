@@ -102,12 +102,12 @@ func ExampleMakeTrampoline_scheduleRecursive() {
 func ExampleMakeTrampoline_scheduleLoop() {
 	serial := scheduler.MakeTrampoline()
 
-	serial.ScheduleLoop(func(index int, again func(int)) {
+	serial.ScheduleLoop(1, func(index int, again func(next int)) {
 		fmt.Println(index)
 		if index < 3 {
 			again(index + 1)
 		}
-	}, 1)
+	})
 
 	fmt.Println("BEFORE")
 	serial.Wait()

@@ -25,7 +25,7 @@ type Scheduler interface {
 	// the scheduler. The current loop index is passed to the task. The loop
 	// index starts at the value passed in the from argument. The task is
 	// expected to pass the next loop index to the again function.
-	ScheduleLoop(task func(index int, again func(next int)), from int) Runner
+	ScheduleLoop(from int, task func(index int, again func(next int))) Runner
 
 	// ScheduleFuture dispatches a task to the scheduler to be executed later.
 	// The due time specifies when the task should be executed.
