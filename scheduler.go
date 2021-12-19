@@ -15,20 +15,27 @@ type Scheduler interface {
 	// Schedule dispatches a task to the scheduler.
 	Schedule(task func()) Runner
 
-	// ScheduleRecursive dispatches a task to the scheduler. Use the self
+	// ScheduleRecursive dispatches a task to the scheduler. Use the again
 	// function to schedule another iteration of a repeating algorithm on
 	// the scheduler.
-	ScheduleRecursive(task func(self func())) Runner
+	ScheduleRecursive(task func(again func())) Runner
+
+	// ScheduleLoop dispatches a task to the scheduler. Use the again
+	// function to schedule another iteration of a repeating algorithm on
+	// the scheduler. The current loop index is passed to the task. The loop
+	// index starts at the value passed in the from argument. The task is
+	// expected to pass the next loop index to the again function.
+	ScheduleLoop(task func(index int, again func(next int)), from int) Runner
 
 	// ScheduleFuture dispatches a task to the scheduler to be executed later.
 	// The due time specifies when the task should be executed.
 	ScheduleFuture(due time.Duration, task func()) Runner
 
 	// ScheduleFutureRecursive dispatches a task to the scheduler to be
-	// executed later. Use the self function to schedule another iteration of a
+	// executed later. Use the again function to schedule another iteration of a
 	// repeating algorithm on the scheduler. The due time specifies when the
 	// task should be executed.
-	ScheduleFutureRecursive(due time.Duration, task func(self func(due time.Duration))) Runner
+	ScheduleFutureRecursive(due time.Duration, task func(again func(due time.Duration))) Runner
 
 	// Wait will return when the Cancel() method is called or when there are no
 	// more tasks running. Note, the currently running task may schedule

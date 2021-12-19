@@ -63,44 +63,60 @@ func (s *trampoline) Since(t time.Time) time.Duration {
 }
 
 func (s *trampoline) Schedule(task func()) Runner {
-	t := futuretask{time.Now(), task, make(chan struct{})}
+	t := futuretask{at: time.Now(), run: task, cancel: make(chan struct{})}
 	s.tasks = append(s.tasks, t)
 	sort.Stable(s)
 	return &t
 }
 
-func (s *trampoline) ScheduleRecursive(task func(self func())) Runner {
+func (s *trampoline) ScheduleRecursive(task func(again func())) Runner {
 	t := futuretask{cancel: make(chan struct{})}
-	self := func() {
+	again := func() {
 		t.at = time.Now()
 		s.tasks = append(s.tasks, t)
 		sort.Stable(s)
 	}
 	t.run = func() {
-		task(self)
+		task(again)
 	}
-	self()
+	again()
+	return &t
+}
+
+func (s *trampoline) ScheduleLoop(task func(index int, again func(next int)), from int) Runner {
+	t := futuretask{cancel: make(chan struct{})}
+	var run func(index int) func()
+	again := func(index int) {
+		t.at = time.Now()
+		t.run = run(index)
+		s.tasks = append(s.tasks, t)
+		sort.Stable(s)
+	}
+	run = func(index int) func() {
+		return func() { task(index, again) }
+	}
+	again(from)
 	return &t
 }
 
 func (s *trampoline) ScheduleFuture(due time.Duration, task func()) Runner {
-	t := futuretask{time.Now().Add(due), task, make(chan struct{})}
+	t := futuretask{at: time.Now().Add(due), run: task, cancel: make(chan struct{})}
 	s.tasks = append(s.tasks, t)
 	sort.Stable(s)
 	return &t
 }
 
-func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) Runner {
+func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(again func(time.Duration))) Runner {
 	t := futuretask{cancel: make(chan struct{})}
-	self := func(due time.Duration) {
+	again := func(due time.Duration) {
 		t.at = time.Now().Add(due)
 		s.tasks = append(s.tasks, t)
 		sort.Stable(s)
 	}
 	t.run = func() {
-		task(self)
+		task(again)
 	}
-	self(due)
+	again(due)
 	return &t
 }
 

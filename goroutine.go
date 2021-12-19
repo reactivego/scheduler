@@ -12,7 +12,7 @@ import (
 // asynchronously, running them concurrently with previously scheduled tasks.
 // It is safe to call the Goroutine scheduling methods from multiple
 // concurrently running goroutines. Nested tasks dispatched inside e.g.
-// ScheduleRecursive by calling the function self() will be added to a
+// ScheduleRecursive by calling the function again() will be added to a
 // serial queue and run in the order they were dispatched in.
 var Goroutine = MakeGoroutine()
 
@@ -64,7 +64,7 @@ func (s *goroutine) Schedule(task func()) Runner {
 	return cancel
 }
 
-func (s *goroutine) ScheduleRecursive(task func(self func())) Runner {
+func (s *goroutine) ScheduleRecursive(task func(again func())) Runner {
 	runner := make(chan Runner, 1)
 	atomic.AddInt32(&s.active, 1)
 	s.concurrent.Add(1)
@@ -73,6 +73,20 @@ func (s *goroutine) ScheduleRecursive(task func(self func())) Runner {
 		defer s.concurrent.Done()
 		trampoline := MakeTrampoline()
 		runner <- trampoline.ScheduleRecursive(task)
+		trampoline.Wait()
+	}()
+	return <-runner
+}
+
+func (s *goroutine) ScheduleLoop(task func(index int, again func(next int)), from int) Runner {
+	runner := make(chan Runner, 1)
+	atomic.AddInt32(&s.active, 1)
+	s.concurrent.Add(1)
+	go func() {
+		defer atomic.AddInt32(&s.active, -1)
+		defer s.concurrent.Done()
+		trampoline := MakeTrampoline()
+		runner <- trampoline.ScheduleLoop(task, from)
 		trampoline.Wait()
 	}()
 	return <-runner
@@ -105,7 +119,7 @@ func (s *goroutine) ScheduleFuture(due time.Duration, task func()) Runner {
 	return cancel
 }
 
-func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(self func(time.Duration))) Runner {
+func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(again func(time.Duration))) Runner {
 	runner := make(chan Runner, 1)
 	atomic.AddInt32(&s.active, 1)
 	s.concurrent.Add(1)

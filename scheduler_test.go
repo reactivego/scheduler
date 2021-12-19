@@ -9,17 +9,17 @@ import (
 
 // The concurrent Goroutine scheduler will dispatch a task asynchronously and
 // run it concurrently with previously scheduled tasks. Nested tasks
-// dispatched inside ScheduleRecursive by calling the function self() will be
+// dispatched inside ScheduleRecursive by calling the function again() will be
 // asynchronous and serial.
 func Example_concurrent() {
 	concurrent := scheduler.Goroutine
 
 	i := 0
-	concurrent.ScheduleRecursive(func(self func()) {
+	concurrent.ScheduleRecursive(func(again func()) {
 		fmt.Println(i)
 		i++
 		if i < 5 {
-			self()
+			again()
 		}
 	})
 
@@ -78,11 +78,11 @@ func ExampleMakeTrampoline_scheduleRecursive() {
 	serial := scheduler.MakeTrampoline()
 
 	i := 0
-	serial.ScheduleRecursive(func(self func()) {
+	serial.ScheduleRecursive(func(again func()) {
 		fmt.Println(i)
 		i++
 		if i < 3 {
-			self()
+			again()
 		}
 	})
 
@@ -95,6 +95,29 @@ func ExampleMakeTrampoline_scheduleRecursive() {
 	// 0
 	// 1
 	// 2
+	// AFTER
+	// tasks = 0
+}
+
+func ExampleMakeTrampoline_scheduleLoop() {
+	serial := scheduler.MakeTrampoline()
+
+	serial.ScheduleLoop(func(index int, again func(int)) {
+		fmt.Println(index)
+		if index < 3 {
+			again(index + 1)
+		}
+	}, 1)
+
+	fmt.Println("BEFORE")
+	serial.Wait()
+	fmt.Println("AFTER")
+	fmt.Println("tasks =", serial.Count())
+	// Output:
+	// BEFORE
+	// 1
+	// 2
+	// 3
 	// AFTER
 	// tasks = 0
 }
@@ -141,14 +164,14 @@ func ExampleMakeTrampoline_scheduleFutureRecursive() {
 
 	serial := scheduler.MakeTrampoline()
 
-	serial.ScheduleFutureRecursive(0*ms, func(self func(time.Duration)) {
+	serial.ScheduleFutureRecursive(0*ms, func(again func(time.Duration)) {
 		fmt.Println("> outer")
 
-		serial.ScheduleFutureRecursive(10*ms, func(self func(time.Duration)) {
+		serial.ScheduleFutureRecursive(10*ms, func(again func(time.Duration)) {
 			fmt.Println("leaf 10ms")
 		})
 
-		serial.ScheduleFutureRecursive(5*ms, func(self func(time.Duration)) {
+		serial.ScheduleFutureRecursive(5*ms, func(again func(time.Duration)) {
 			fmt.Println("leaf 5ms")
 		})
 
@@ -178,9 +201,9 @@ func ExampleMakeGoroutine_cancel() {
 		// do nothing....
 	})
 
-	running := concurrent.ScheduleFutureRecursive(10*ms, func(self func(due time.Duration)) {
+	running := concurrent.ScheduleFutureRecursive(10*ms, func(again func(due time.Duration)) {
 		// do nothing....
-		self(10 * ms)
+		again(10 * ms)
 	})
 	running.Cancel()
 
