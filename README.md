@@ -9,7 +9,7 @@ Package `scheduler` provides a concurrent and a serial task scheduler with suppo
 The concurrent scheduler is exported as a global public variable with the name **`Goroutine`**.
 This scheduler can be used directly.
 
-A serial scheduler needs to be instantiated by calling the **`MakeTrampoline`** function exported by this package.
+A serial scheduler needs to be instantiated by calling the **`NewTrampoline`** function exported by this package.
 
 ## Examples
 
@@ -58,7 +58,7 @@ queue and running them when the Wait method is called on the scheduler.
 Code:
 ```go
 func Example_serial() {
-	serial := scheduler.MakeTrampoline()
+	serial := scheduler.NewTrampoline()
 
 	// Asynchronous & serial
 	serial.Schedule(func() {

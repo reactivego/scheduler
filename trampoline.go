@@ -29,7 +29,7 @@ type trampoline struct {
 	current *futuretask
 }
 
-// MakeTrampoline creates and returns a non-concurrent scheduler that runs
+// NewTrampoline creates and returns a non-concurrent scheduler that runs
 // all tasks on a single goroutine. The returned instance implements the
 // Scheduler interface. Tasks scheduled will be dispatched asynchronously
 // because they are added to a serial queue. Now when the Wait method is called
@@ -38,9 +38,12 @@ type trampoline struct {
 // The Trampoline scheduler is not safe to use from multiple goroutines at the
 // concurrently. It should be used purely for scheduling tasks from a single
 // goroutine.
-func MakeTrampoline() *trampoline {
+func NewTrampoline() *trampoline {
 	return &trampoline{gid: Gid()}
 }
+
+// MakeTrampoline is deprecated, use NewTrampoline instead
+var MakeTrampoline = NewTrampoline
 
 func (s *trampoline) Len() int {
 	return len(s.tasks)
