@@ -28,9 +28,8 @@ func (c cancel) Cancel() {
 
 type goroutine struct {
 	sync.Mutex
-	trampolines []*trampoline
-	concurrent  sync.WaitGroup
-	active      int32
+	concurrent sync.WaitGroup
+	active     int32
 }
 
 func (s *goroutine) Now() time.Time {
