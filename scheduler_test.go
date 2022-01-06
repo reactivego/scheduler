@@ -35,10 +35,10 @@ func Example_concurrent() {
 	// tasks = 0
 }
 
-// The serial Trampoline scheduler will dispatch tasks asynchronously by adding
+// The serial scheduler will dispatch tasks asynchronously by adding
 // them to a serial queue and running them when the Wait method is called.
 func Example_serial() {
-	serial := scheduler.NewTrampoline()
+	serial := scheduler.New()
 
 	// Asynchronous & serial
 	serial.Schedule(func() {
@@ -74,8 +74,8 @@ func Example_serial() {
 	// AFTER WAIT (tasks = 0)
 }
 
-func ExampleNewTrampoline_scheduleRecursive() {
-	serial := scheduler.NewTrampoline()
+func ExampleNew_scheduleRecursive() {
+	serial := scheduler.New()
 
 	i := 0
 	serial.ScheduleRecursive(func(again func()) {
@@ -99,8 +99,8 @@ func ExampleNewTrampoline_scheduleRecursive() {
 	// tasks = 0
 }
 
-func ExampleNewTrampoline_scheduleLoop() {
-	serial := scheduler.NewTrampoline()
+func ExampleNew_scheduleLoop() {
+	serial := scheduler.New()
 
 	serial.ScheduleLoop(1, func(index int, again func(next int)) {
 		fmt.Println(index)
@@ -122,8 +122,8 @@ func ExampleNewTrampoline_scheduleLoop() {
 	// tasks = 0
 }
 
-func ExampleNewTrampoline_scheduleFuture() {
-	serial := scheduler.NewTrampoline()
+func ExampleNew_scheduleFuture() {
+	serial := scheduler.New()
 
 	// Asynchronous & Serial
 	serial.ScheduleFuture(10*time.Millisecond, func() {
@@ -159,10 +159,10 @@ func ExampleNewTrampoline_scheduleFuture() {
 	// AFTER WAIT (tasks = 0)
 }
 
-func ExampleNewTrampoline_scheduleFutureRecursive() {
+func ExampleNew_scheduleFutureRecursive() {
 	const ms = time.Millisecond
 
-	serial := scheduler.NewTrampoline()
+	serial := scheduler.New()
 
 	serial.ScheduleFutureRecursive(0*ms, func(again func(time.Duration)) {
 		fmt.Println("> outer")
