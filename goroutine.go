@@ -14,13 +14,7 @@ import (
 // concurrently running goroutines. Nested tasks dispatched inside e.g.
 // ScheduleRecursive by calling the function again() will be added to a
 // serial queue and run in the order they were dispatched in.
-var Goroutine = MakeGoroutine()
-
-// MakeGoroutine creates and returns a new concurrent scheduler instance.
-// The returned instance implements the Scheduler interface.
-func MakeGoroutine() *goroutine {
-	return &goroutine{}
-}
+var Goroutine = &goroutine{}
 
 // cancel
 

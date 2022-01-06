@@ -192,10 +192,10 @@ func ExampleMakeTrampoline_scheduleFutureRecursive() {
 	// AFTER WAIT (tasks = 0)
 }
 
-func ExampleMakeGoroutine_cancel() {
+func ExampleGoroutine_cancel() {
 	const ms = time.Millisecond
 
-	concurrent := scheduler.MakeGoroutine()
+	concurrent := scheduler.Goroutine
 
 	concurrent.ScheduleFuture(10*ms, func() {
 		// do nothing....
