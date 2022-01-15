@@ -30,11 +30,11 @@ type trampoline struct {
 }
 
 // New creates and returns a serial (non-concurrent) scheduler that runs all
-// tasks on a single goroutine. The returned scheduler is returned as a Scheduler
-// interface. Tasks scheduled will be dispatched asynchronously because they are
-// added to a serial queue. When the Wait method is called all tasks scheduled
-// on the serial queue will be performed in the same order in which they were added
-// to the queue.
+// tasks on a single goroutine. The returned scheduler is returned as a
+// SerialScheduler interface. Tasks scheduled will be dispatched asynchronously
+// because they are added to a serial queue. When the Wait method is called all
+// tasks scheduled on the serial queue will be performed in the same order in
+// which they were added to the queue.
 //
 // The returned scheduler is not safe to be shared by multiple goroutines
 // concurrently. It should be used purely from a single goroutine to schedule

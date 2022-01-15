@@ -14,7 +14,7 @@ import (
 // concurrently running goroutines. Nested tasks dispatched inside e.g.
 // ScheduleRecursive by calling the function again() will be added to a
 // serial queue and run in the order they were dispatched in.
-var Goroutine = &goroutine{}
+var Goroutine = ConcurrentScheduler(&goroutine{})
 
 // cancel
 
