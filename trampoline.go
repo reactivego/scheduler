@@ -204,5 +204,9 @@ func (s *trampoline) Count() int {
 }
 
 func (s trampoline) String() string {
-	return fmt.Sprintf("Trampoline{ gid = %s, tasks = %d }", s.gid, len(s.tasks))
+	at := make([]string, len(s.tasks))
+	for i := range s.tasks {
+		at[i] = s.tasks[i].at.Format("15:04:05")
+	}
+	return fmt.Sprintf("Trampoline{ gid = %s, tasks = %d, at = %v }", s.gid, len(s.tasks), at)
 }
