@@ -39,7 +39,7 @@ type trampoline struct {
 // The returned scheduler is not safe to be shared by multiple goroutines
 // concurrently. It should be used purely from a single goroutine to schedule
 // tasks to run sequentially.
-func New() Scheduler {
+func New() SerialScheduler {
 	return &trampoline{gid: Gid()}
 }
 
