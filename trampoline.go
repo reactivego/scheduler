@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -24,7 +25,9 @@ func (t *futuretask) Cancel() {
 // trampoline
 
 type trampoline struct {
-	gid     string
+	wait    sync.WaitGroup
+	once    sync.Once
+	gid     uint64
 	tasks   []futuretask
 	current *futuretask
 }
@@ -40,7 +43,7 @@ type trampoline struct {
 // concurrently. It should be used purely from a single goroutine to schedule
 // tasks to run sequentially.
 func New() SerialScheduler {
-	return &trampoline{gid: Gid()}
+	return &trampoline{}
 }
 
 // MakeTrampoline is deprecated, use New instead
@@ -125,17 +128,25 @@ func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(again 
 }
 
 func (s *trampoline) Wait() {
-	for s.RunTask() {
-	}
+	s.wait.Add(1)
+	s.once.Do(func() {
+		s.gid = Gid()
+		for s.RunTask() {
+		}
+	})
+	s.wait.Done()
+	s.wait.Wait()
 }
 
+// Gosched is designed specifically for implementing a multicasting Observable Subject.
+// It works around a potential deadlock when both sides of the Subject use the same
+// serial scheduler, and are therefore running on a single goroutine.
 func (s *trampoline) Gosched() {
-	if len(s.gid) > 0 && s.gid == Gid() {
-		if s.RunTask() {
-			return
-		}
+	// Only call RunTask recursively, so  only when the current goroutine is the same
+	// as the one that is currently in a call to Wait.
+	if s.gid != Gid() || !s.RunTask() {
+		runtime.Gosched()
 	}
-	runtime.Gosched()
 }
 
 func (s *trampoline) RunTask() bool {
@@ -208,7 +219,7 @@ func (s trampoline) String() string {
 	for i := range s.tasks {
 		at[i] = s.tasks[i].at.Format("15:04:05")
 	}
-	return fmt.Sprintf("Trampoline{ gid = %s, tasks = %d, at = %v }", s.gid, len(s.tasks), at)
+	return fmt.Sprintf("Trampoline{ gid = %d, tasks = %d, at = %v }", s.gid, len(s.tasks), at)
 }
 
 func (s *trampoline) Serial() {
