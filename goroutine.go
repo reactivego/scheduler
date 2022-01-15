@@ -145,3 +145,6 @@ func (s *goroutine) Count() int {
 func (s *goroutine) String() string {
 	return fmt.Sprintf("Goroutine{ tasks = %d }", atomic.LoadInt32(&s.active))
 }
+
+func (s *goroutine) Concurrent() {
+}

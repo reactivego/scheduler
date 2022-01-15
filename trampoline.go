@@ -210,3 +210,6 @@ func (s trampoline) String() string {
 	}
 	return fmt.Sprintf("Trampoline{ gid = %s, tasks = %d, at = %v }", s.gid, len(s.tasks), at)
 }
+
+func (s *trampoline) Serial() {
+}

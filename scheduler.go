@@ -57,6 +57,20 @@ type Scheduler interface {
 	String() string
 }
 
+// SerialScheduler is a Scheduler that schedules tasks to run sequentially.
+// Tasks scheduled on this scheduler never access shared data at the same time.
+type SerialScheduler interface {
+	Scheduler
+	Serial()
+}
+
+// ConcurrentScheduler is a Scheduler that schedules tasks concurrently.
+// Tasks scheduled on this scheduler may access shared data at the same time.
+type ConcurrentScheduler interface {
+	Scheduler
+	Concurrent()
+}
+
 // Runner is an interface to a running task. It can be used to cancel the
 // running task by calling its Cancel() method.
 type Runner interface {
