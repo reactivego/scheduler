@@ -46,9 +46,6 @@ func New() SerialScheduler {
 	return &trampoline{}
 }
 
-// MakeTrampoline is deprecated, use New instead
-var MakeTrampoline = New
-
 func (s *trampoline) Len() int {
 	return len(s.tasks)
 }
