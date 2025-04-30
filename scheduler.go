@@ -4,9 +4,9 @@ package scheduler
 
 import "time"
 
-// Scheduler is an interface for running tasks.
-// Scheduling of tasks is asynchronous/non-blocking.
-// Tasks can be executed in sequence or concurrently.
+// Scheduler defines an interface for task execution management.
+// Task scheduling happens asynchronously without blocking the caller.
+// Implementation may execute tasks sequentially or concurrently.
 type Scheduler interface {
 	// Now returns the current time according to the scheduler.
 	Now() time.Time
@@ -39,15 +39,16 @@ type Scheduler interface {
 	// task should be executed.
 	ScheduleFutureRecursive(due time.Duration, task func(again func(due time.Duration))) Runner
 
-	// Wait will return when the Cancel() method is called or when there are no
-	// more tasks running. Note, the currently running task may schedule
-	// additional tasks to the queue to run later.
+	// Wait will return when there are no more tasks running.
 	Wait()
 
 	// Gosched will give the scheduler an oportunity to run another task
 	Gosched()
 
 	// IsConcurrent returns true for a scheduler that runs tasks concurrently.
+	// When using a concurrent scheduler, tasks will need to use synchronization
+	// primitives like mutexes to properly guard against race conditions when
+	// accessing shared data.
 	IsConcurrent() bool
 
 	// Count returns the number of currently active tasks.
@@ -90,7 +91,9 @@ func NewSerialScheduler() SerialScheduler {
 }
 
 // ConcurrentScheduler is a Scheduler that schedules tasks concurrently.
-// Tasks scheduled on this scheduler may access shared data at the same time.
+// Tasks will need to use synchronization primitives like mutexes to properly
+// guard against race conditions when
+// accessing shared data.
 type ConcurrentScheduler interface {
 	Concurrent()
 	Scheduler
