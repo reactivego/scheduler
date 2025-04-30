@@ -211,7 +211,7 @@ func (s *trampoline) Count() int {
 	}
 }
 
-func (s trampoline) String() string {
+func (s *trampoline) String() string {
 	at := make([]string, len(s.tasks))
 	for i := range s.tasks {
 		at[i] = s.tasks[i].at.Format("15:04:05")
