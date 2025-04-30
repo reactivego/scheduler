@@ -57,23 +57,53 @@ type Scheduler interface {
 	String() string
 }
 
-// SerialScheduler is a Scheduler that schedules tasks to run sequentially.
-// Tasks scheduled on this scheduler never access shared data at the same time.
-type SerialScheduler interface {
-	Scheduler
-	Serial()
-}
-
-// ConcurrentScheduler is a Scheduler that schedules tasks concurrently.
-// Tasks scheduled on this scheduler may access shared data at the same time.
-type ConcurrentScheduler interface {
-	Scheduler
-	Concurrent()
-}
-
 // Runner is an interface to a running task. It can be used to cancel the
 // running task by calling its Cancel() method.
 type Runner interface {
 	// Cancel the running task.
 	Cancel()
+}
+
+// SerialScheduler is a Scheduler that schedules tasks to run sequentially.
+// Tasks scheduled on this scheduler never access shared data at the same time.
+type SerialScheduler interface {
+	Serial()
+	Scheduler
+}
+
+// New creates and returns a serial (non-concurrent) scheduler that runs all
+// tasks on a single goroutine. The returned scheduler is returned as a
+// SerialScheduler interface. Tasks scheduled will be dispatched asynchronously
+// because they are added to a serial queue. When the Wait method is called all
+// tasks scheduled on the serial queue will be performed in the same order in
+// which they were added to the queue.
+//
+// The returned scheduler is not safe to be shared by multiple goroutines
+// concurrently. It should be used purely from a single goroutine to schedule
+// tasks to run sequentially.
+func New() SerialScheduler {
+	return &trampoline{}
+}
+
+func NewSerialScheduler() SerialScheduler {
+	return &trampoline{}
+}
+
+// ConcurrentScheduler is a Scheduler that schedules tasks concurrently.
+// Tasks scheduled on this scheduler may access shared data at the same time.
+type ConcurrentScheduler interface {
+	Concurrent()
+	Scheduler
+}
+
+// Goroutine is a concurrent scheduler. Schedule methods dispatch tasks
+// asynchronously, running them concurrently with previously scheduled tasks.
+// It is safe to call the Goroutine scheduling methods from multiple
+// concurrently running goroutines. Nested tasks dispatched inside e.g.
+// ScheduleRecursive by calling the function again() will be added to a
+// serial queue and run in the order they were dispatched in.
+var Goroutine = ConcurrentScheduler(&goroutine{})
+
+func NewConcurrentScheduler() ConcurrentScheduler {
+	return &goroutine{}
 }

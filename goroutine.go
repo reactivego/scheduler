@@ -8,28 +8,13 @@ import (
 	"time"
 )
 
-// Goroutine is a concurrent scheduler. Schedule methods dispatch tasks
-// asynchronously, running them concurrently with previously scheduled tasks.
-// It is safe to call the Goroutine scheduling methods from multiple
-// concurrently running goroutines. Nested tasks dispatched inside e.g.
-// ScheduleRecursive by calling the function again() will be added to a
-// serial queue and run in the order they were dispatched in.
-var Goroutine = ConcurrentScheduler(&goroutine{})
-
-// cancel
-
-type cancel chan struct{}
-
-func (c cancel) Cancel() {
-	close(c)
-}
-
-// goroutine
-
 type goroutine struct {
 	sync.Mutex
 	concurrent sync.WaitGroup
 	active     int32
+}
+
+func (s *goroutine) Concurrent() {
 }
 
 func (s *goroutine) Now() time.Time {
@@ -144,7 +129,4 @@ func (s *goroutine) Count() int {
 
 func (s *goroutine) String() string {
 	return fmt.Sprintf("Goroutine{ tasks = %d }", atomic.LoadInt32(&s.active))
-}
-
-func (s *goroutine) Concurrent() {
 }

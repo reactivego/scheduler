@@ -8,22 +8,6 @@ import (
 	"time"
 )
 
-// futuretask
-
-type futuretask struct {
-	at     time.Time
-	run    func()
-	cancel chan struct{}
-}
-
-func (t *futuretask) Cancel() {
-	if t.cancel != nil {
-		close(t.cancel)
-	}
-}
-
-// trampoline
-
 type trampoline struct {
 	wait    sync.WaitGroup
 	once    sync.Once
@@ -32,18 +16,7 @@ type trampoline struct {
 	current *futuretask
 }
 
-// New creates and returns a serial (non-concurrent) scheduler that runs all
-// tasks on a single goroutine. The returned scheduler is returned as a
-// SerialScheduler interface. Tasks scheduled will be dispatched asynchronously
-// because they are added to a serial queue. When the Wait method is called all
-// tasks scheduled on the serial queue will be performed in the same order in
-// which they were added to the queue.
-//
-// The returned scheduler is not safe to be shared by multiple goroutines
-// concurrently. It should be used purely from a single goroutine to schedule
-// tasks to run sequentially.
-func New() SerialScheduler {
-	return &trampoline{}
+func (s *trampoline) Serial() {
 }
 
 func (s *trampoline) Len() int {
@@ -217,7 +190,4 @@ func (s *trampoline) String() string {
 		at[i] = s.tasks[i].at.Format("15:04:05")
 	}
 	return fmt.Sprintf("Trampoline{ gid = %d, tasks = %d, at = %v }", s.gid, len(s.tasks), at)
-}
-
-func (s *trampoline) Serial() {
 }
