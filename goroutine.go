@@ -9,7 +9,6 @@ import (
 )
 
 type goroutine struct {
-	sync.Mutex
 	concurrent sync.WaitGroup
 	active     int32
 }
