@@ -7,6 +7,31 @@ import (
 	"github.com/reactivego/scheduler"
 )
 
+// Demonstrate how to cancel a scheduled task. It shows scheduling a future task
+// and a recursive future task, then canceling the recursive task. After waiting
+// for all tasks to complete, it verifies that no tasks remain in the scheduler
+// queue.
+func Example_cancel() {
+	const ms = time.Millisecond
+
+	concurrent := scheduler.Goroutine
+
+	concurrent.ScheduleFuture(10*ms, func() {
+		// do nothing....
+	})
+
+	running := concurrent.ScheduleFutureRecursive(10*ms, func(again func(due time.Duration)) {
+		// do nothing....
+		again(10 * ms)
+	})
+	running.Cancel()
+
+	concurrent.Wait()
+	fmt.Println("tasks =", concurrent.Count())
+	// Output:
+	// tasks = 0
+}
+
 // The concurrent Goroutine scheduler will dispatch a task asynchronously and
 // run it concurrently with previously scheduled tasks. Nested tasks
 // dispatched inside ScheduleRecursive by calling the function again() will be
@@ -190,25 +215,4 @@ func ExampleNew_scheduleFutureRecursive() {
 	// leaf 5ms
 	// leaf 10ms
 	// AFTER WAIT (tasks = 0)
-}
-
-func ExampleGoroutine_cancel() {
-	const ms = time.Millisecond
-
-	concurrent := scheduler.Goroutine
-
-	concurrent.ScheduleFuture(10*ms, func() {
-		// do nothing....
-	})
-
-	running := concurrent.ScheduleFutureRecursive(10*ms, func(again func(due time.Duration)) {
-		// do nothing....
-		again(10 * ms)
-	})
-	running.Cancel()
-
-	concurrent.Wait()
-	fmt.Println("tasks =", concurrent.Count())
-	// Output:
-	// tasks = 0
 }
