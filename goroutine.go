@@ -10,7 +10,7 @@ import (
 
 type goroutine struct {
 	concurrent sync.WaitGroup
-	active     int32
+	active     atomic.Int32
 }
 
 func (s *goroutine) Concurrent() {
@@ -26,10 +26,10 @@ func (s *goroutine) Since(t time.Time) time.Duration {
 
 func (s *goroutine) Schedule(task func()) Runner {
 	cancel := make(cancel)
-	atomic.AddInt32(&s.active, 1)
+	s.active.Add(1)
 	s.concurrent.Add(1)
 	go func() {
-		defer atomic.AddInt32(&s.active, -1)
+		defer s.active.Add(-1)
 		defer s.concurrent.Done()
 		select {
 		case <-cancel:
@@ -43,12 +43,12 @@ func (s *goroutine) Schedule(task func()) Runner {
 
 func (s *goroutine) ScheduleRecursive(task func(again func())) Runner {
 	runner := make(chan Runner, 1)
-	atomic.AddInt32(&s.active, 1)
+	s.active.Add(1)
 	s.concurrent.Add(1)
 	go func() {
-		defer atomic.AddInt32(&s.active, -1)
+		defer s.active.Add(-1)
 		defer s.concurrent.Done()
-		serial := New()
+		serial := NewSerialScheduler()
 		runner <- serial.ScheduleRecursive(task)
 		serial.Wait()
 	}()
@@ -57,12 +57,12 @@ func (s *goroutine) ScheduleRecursive(task func(again func())) Runner {
 
 func (s *goroutine) ScheduleLoop(from int, task func(index int, again func(next int))) Runner {
 	runner := make(chan Runner, 1)
-	atomic.AddInt32(&s.active, 1)
+	s.active.Add(1)
 	s.concurrent.Add(1)
 	go func() {
-		defer atomic.AddInt32(&s.active, -1)
+		defer s.active.Add(-1)
 		defer s.concurrent.Done()
-		serial := New()
+		serial := NewSerialScheduler()
 		runner <- serial.ScheduleLoop(from, task)
 		serial.Wait()
 	}()
@@ -71,10 +71,10 @@ func (s *goroutine) ScheduleLoop(from int, task func(index int, again func(next 
 
 func (s *goroutine) ScheduleFuture(due time.Duration, task func()) Runner {
 	cancel := make(cancel)
-	atomic.AddInt32(&s.active, 1)
+	s.active.Add(1)
 	s.concurrent.Add(1)
 	go func() {
-		defer atomic.AddInt32(&s.active, -1)
+		defer s.active.Add(-1)
 		defer s.concurrent.Done()
 		if due > 0 {
 			due := time.NewTimer(due)
@@ -98,12 +98,12 @@ func (s *goroutine) ScheduleFuture(due time.Duration, task func()) Runner {
 
 func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(again func(time.Duration))) Runner {
 	runner := make(chan Runner, 1)
-	atomic.AddInt32(&s.active, 1)
+	s.active.Add(1)
 	s.concurrent.Add(1)
 	go func() {
-		defer atomic.AddInt32(&s.active, -1)
+		defer s.active.Add(-1)
 		defer s.concurrent.Done()
-		serial := New()
+		serial := NewSerialScheduler()
 		runner <- serial.ScheduleFutureRecursive(due, task)
 		serial.Wait()
 	}()
@@ -123,9 +123,9 @@ func (s *goroutine) IsConcurrent() bool {
 }
 
 func (s *goroutine) Count() int {
-	return int(atomic.LoadInt32(&s.active))
+	return int(s.active.Load())
 }
 
 func (s *goroutine) String() string {
-	return fmt.Sprintf("Goroutine{ tasks = %d }", atomic.LoadInt32(&s.active))
+	return fmt.Sprintf("Goroutine{ tasks = %d }", s.active.Load())
 }

@@ -40,14 +40,14 @@ func (s *trampoline) Since(t time.Time) time.Duration {
 }
 
 func (s *trampoline) Schedule(task func()) Runner {
-	t := futuretask{at: time.Now(), run: task, cancel: make(chan struct{})}
+	t := futuretask{at: time.Now(), run: task, cancel: make(cancel)}
 	s.tasks = append(s.tasks, t)
 	sort.Stable(s)
-	return &t
+	return t.cancel
 }
 
 func (s *trampoline) ScheduleRecursive(task func(again func())) Runner {
-	t := futuretask{cancel: make(chan struct{})}
+	t := futuretask{cancel: make(cancel)}
 	again := func() {
 		t.at = time.Now()
 		s.tasks = append(s.tasks, t)
@@ -57,11 +57,11 @@ func (s *trampoline) ScheduleRecursive(task func(again func())) Runner {
 		task(again)
 	}
 	again()
-	return &t
+	return t.cancel
 }
 
 func (s *trampoline) ScheduleLoop(from int, task func(index int, again func(next int))) Runner {
-	t := futuretask{cancel: make(chan struct{})}
+	t := futuretask{cancel: make(cancel)}
 	var run func(index int) func()
 	again := func(index int) {
 		t.at = time.Now()
@@ -73,18 +73,18 @@ func (s *trampoline) ScheduleLoop(from int, task func(index int, again func(next
 		return func() { task(index, again) }
 	}
 	again(from)
-	return &t
+	return t.cancel
 }
 
 func (s *trampoline) ScheduleFuture(due time.Duration, task func()) Runner {
-	t := futuretask{at: time.Now().Add(due), run: task, cancel: make(chan struct{})}
+	t := futuretask{at: time.Now().Add(due), run: task, cancel: make(cancel)}
 	s.tasks = append(s.tasks, t)
 	sort.Stable(s)
-	return &t
+	return t.cancel
 }
 
 func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(again func(time.Duration))) Runner {
-	t := futuretask{cancel: make(chan struct{})}
+	t := futuretask{cancel: make(cancel)}
 	again := func(due time.Duration) {
 		t.at = time.Now().Add(due)
 		s.tasks = append(s.tasks, t)
@@ -94,7 +94,7 @@ func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(again 
 		task(again)
 	}
 	again(due)
-	return &t
+	return t.cancel
 }
 
 func (s *trampoline) Wait() {
@@ -112,8 +112,8 @@ func (s *trampoline) Wait() {
 // It works around a potential deadlock when both sides of the Subject use the same
 // serial scheduler, and are therefore running on a single goroutine.
 func (s *trampoline) Gosched() {
-	// Only call RunTask recursively, so  only when the current goroutine is the same
-	// as the one that is currently in a call to Wait.
+	// Only call RunTask recursively when the current goroutine is the same as
+	// the one that is currently in a call to Wait.
 	if s.gid != Gid() || !s.RunTask() {
 		runtime.Gosched()
 	}
