@@ -99,13 +99,15 @@ func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(again 
 
 func (s *trampoline) Wait() {
 	s.wait.Add(1)
-	s.once.Do(func() {
-		s.gid = Gid()
-		for s.RunTask() {
-		}
-	})
+	s.once.Do(s.Run)
 	s.wait.Done()
 	s.wait.Wait()
+}
+
+func (s *trampoline) Run() {
+	s.gid = Gid()
+	for s.RunTask() {
+	}
 }
 
 // Gosched is designed specifically for implementing a multicasting Observable Subject.

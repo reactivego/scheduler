@@ -48,9 +48,9 @@ func (s *goroutine) ScheduleRecursive(task func(again func())) Runner {
 	go func() {
 		defer s.active.Add(-1)
 		defer s.concurrent.Done()
-		serial := NewSerialScheduler()
+		serial := &trampoline{}
 		runner <- serial.ScheduleRecursive(task)
-		serial.Wait()
+		serial.Run()
 	}()
 	return <-runner
 }
@@ -62,9 +62,9 @@ func (s *goroutine) ScheduleLoop(from int, task func(index int, again func(next 
 	go func() {
 		defer s.active.Add(-1)
 		defer s.concurrent.Done()
-		serial := NewSerialScheduler()
+		serial := &trampoline{}
 		runner <- serial.ScheduleLoop(from, task)
-		serial.Wait()
+		serial.Run()
 	}()
 	return <-runner
 }
@@ -103,9 +103,9 @@ func (s *goroutine) ScheduleFutureRecursive(due time.Duration, task func(again f
 	go func() {
 		defer s.active.Add(-1)
 		defer s.concurrent.Done()
-		serial := NewSerialScheduler()
+		serial := &trampoline{}
 		runner <- serial.ScheduleFutureRecursive(due, task)
-		serial.Wait()
+		serial.Run()
 	}()
 	return <-runner
 }
