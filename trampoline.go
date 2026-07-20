@@ -5,12 +5,13 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type trampoline struct {
 	wait    sync.WaitGroup
-	once    sync.Once
+	running atomic.Bool
 	gid     uint64
 	tasks   []futuretask
 	current *futuretask
@@ -97,9 +98,15 @@ func (s *trampoline) ScheduleFutureRecursive(due time.Duration, task func(again 
 	return t.cancel
 }
 
+// Wait runs the task queue until it is drained. Unlike a one-shot sync.Once
+// guard, Wait may be called again after new tasks have been scheduled; a call
+// that finds another Wait already running the queue blocks until it finishes.
 func (s *trampoline) Wait() {
 	s.wait.Add(1)
-	s.once.Do(s.Run)
+	if s.running.CompareAndSwap(false, true) {
+		s.Run()
+		s.running.Store(false)
+	}
 	s.wait.Done()
 	s.wait.Wait()
 }
